@@ -1,8 +1,13 @@
 /* NOT FINISHED */
+#define GLEW_STATIC
+
 #include <iostream>
+#include <GL/glew.h>
 #include <SDL2/SDL.h>
 #include <GL/gl.h>
 #include <GL/glext.h>
+#include <fstream>
+#include <streambuf>
 
 const int SCREEN_W {800};
 const int SCREEN_H {600};
@@ -10,14 +15,16 @@ const int SCREEN_H {600};
 void gl_print_str (std::string name, GLenum _enum);
 void gl_info();
 void gl_print_extentions();
+std::string load_text_file (std::string name);
+GLuint load_shader(GLenum shader_type, std::string file_name);
 
 int main() {
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        std::cout << "Unable to init SDL: " << SDL_GetError() << std::endl;
+        std::cerr << "Unable to init SDL: " << SDL_GetError() << std::endl;
         return 1;
     }
-    
+
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
@@ -28,23 +35,37 @@ int main() {
     SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 6);
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
 
-    SDL_Window* win = SDL_CreateWindow("Shooter",
+    SDL_Window* win = SDL_CreateWindow("Template",
             SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
             SCREEN_W, SCREEN_H,
             SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
 
     if (win == nullptr) {
-        std::cout << "Unable to create window: " << SDL_GetError() << std::endl;
+        std::cerr << "Unable to create window: " << SDL_GetError() << std::endl;
         return 1;
     }
 
     SDL_GLContext ctx = SDL_GL_CreateContext(win);
     if (ctx == nullptr) {
-        std::cout << "Unable to create GL Context: " << SDL_GetError() << std::endl;
+        std::cerr << "Unable to create GL Context: " << SDL_GetError() << std::endl;
         return 1;
     }
+
+    GLenum err = glewInit();
+    if (GLEW_OK != err)
+    {
+        std::cerr << "Error: " << glewGetErrorString(err) << std::endl;
+        exit(1);
+    }
+    std::cout << "GLEW's been inited." << std::endl;
+
     gl_info();
     gl_print_extentions();
+    GLuint vertex_shader = load_shader(GL_VERTEX_SHADER, "./assets/default.vert");
+    GLuint fragment_shader = load_shader(GL_FRAGMENT_SHADER, "./assets/default.frag");
+
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
 
     // This makes our buffer swap syncronized with the monitor's vertical refresh
     SDL_GL_SetSwapInterval(1);
@@ -64,10 +85,10 @@ int main() {
 
             if (event.type == SDL_KEYDOWN) {
                 switch (event.key.keysym.sym) {
-                case SDLK_ESCAPE:
-                case SDLK_q:
-                    play = false;
-                    break;
+                    case SDLK_ESCAPE:
+                    case SDLK_q:
+                        play = false;
+                        break;
                 }
             }
         }
@@ -110,8 +131,52 @@ void gl_info() {
 void gl_print_str (std::string name, GLenum _enum) {
     const GLubyte *value = glGetString(_enum);
     if (value == nullptr) {
-        std::cout << "Can't get '" << name << "'" << std::endl;
+        std::cerr << "Can't get '" << name << "'" << std::endl;
     } else {
         std::cout << name << ": " << value << std::endl;
     }
 };
+
+std::string load_text_file (std::string name) {
+    std::ifstream t(name);
+    t.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    std::string str((std::istreambuf_iterator<char>(t)),
+            std::istreambuf_iterator<char>());
+    std::cout << str.length() << std::endl;
+    return str;
+}
+
+GLuint load_shader(GLenum shader_type, std::string file_name) {
+    GLuint shader = glCreateShader(shader_type);
+    if (shader == 0) {
+        std::cerr << "Can't create a vertex shader\n";
+        exit(EXIT_FAILURE);
+    }
+
+    std::string shaderText = load_text_file(file_name);
+    const GLchar *shaderCode = shaderText.c_str();
+    const GLchar *codeArray[] = {shaderCode};
+    glShaderSource(shader, 1, codeArray, NULL);
+    glCompileShader(shader);
+
+    GLint result;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
+    if (GL_FALSE == result) {
+        std::cerr << "Can't compile a shader: " << file_name << std::endl;
+
+        GLint log_length = 0;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &log_length);
+
+        GLchar *log_text = new GLchar[log_length];
+        glGetShaderInfoLog(shader, log_length, nullptr, log_text);
+
+        std::cerr << "----- Start Shader Log -----" << std::endl;
+        std::cerr << log_text << std::endl;
+        std::cerr << "----- End Shader Log -----" << std::endl;
+
+        delete [] log_text;
+        exit(EXIT_FAILURE);
+    }
+
+    return shader;
+}
