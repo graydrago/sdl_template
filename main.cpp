@@ -8,6 +8,7 @@
 #include <GL/glext.h>
 #include <fstream>
 #include <streambuf>
+#include <vector>
 
 const int SCREEN_W {800};
 const int SCREEN_H {600};
@@ -17,12 +18,13 @@ void gl_info();
 void gl_print_extentions();
 std::string load_text_file (std::string name);
 GLuint load_shader(GLenum shader_type, std::string file_name);
+GLuint create_shader_program(std::vector<GLuint> shader_list);
 
 int main() {
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         std::cerr << "Unable to init SDL: " << SDL_GetError() << std::endl;
-        return 1;
+        exit(EXIT_FAILURE);
     }
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -42,20 +44,20 @@ int main() {
 
     if (win == nullptr) {
         std::cerr << "Unable to create window: " << SDL_GetError() << std::endl;
-        return 1;
+        exit(EXIT_FAILURE);
     }
 
     SDL_GLContext ctx = SDL_GL_CreateContext(win);
     if (ctx == nullptr) {
         std::cerr << "Unable to create GL Context: " << SDL_GetError() << std::endl;
-        return 1;
+        exit(EXIT_FAILURE);
     }
 
     GLenum err = glewInit();
     if (GLEW_OK != err)
     {
         std::cerr << "Error: " << glewGetErrorString(err) << std::endl;
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     std::cout << "GLEW's been inited." << std::endl;
 
@@ -63,7 +65,9 @@ int main() {
     gl_print_extentions();
     GLuint vertex_shader = load_shader(GL_VERTEX_SHADER, "./assets/default.vert");
     GLuint fragment_shader = load_shader(GL_FRAGMENT_SHADER, "./assets/default.frag");
-
+    std::vector<GLuint> shaders {vertex_shader, fragment_shader};
+    GLuint shader_program = create_shader_program(shaders);
+    glUseProgram(shader_program);
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
 
@@ -99,6 +103,9 @@ int main() {
 
         SDL_GL_SwapWindow(win);
     }
+
+    glUseProgram(0);
+    glDeleteProgram(shader_program);
 
     SDL_GL_DeleteContext(ctx);
     SDL_DestroyWindow(win);
@@ -180,3 +187,40 @@ GLuint load_shader(GLenum shader_type, std::string file_name) {
 
     return shader;
 }
+
+GLuint create_shader_program(std::vector<GLuint> shader_list) {
+    GLuint program = glCreateProgram();
+    if (program == 0) {
+        std::cerr << "Can't create a program" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    for (auto shader : shader_list) {
+        glAttachShader(program, shader);
+    }
+
+    glLinkProgram(program);
+
+    GLint result;
+    glGetProgramiv(program, GL_LINK_STATUS, &result);
+    if (GL_FALSE == result) {
+        std::cerr << "Can't link a shader program." << std::endl;
+
+        GLint log_length = 0;
+        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &log_length);
+
+        if (log_length > 0) {
+            GLchar *log_text = new GLchar[log_length];
+            glGetProgramInfoLog(program, log_length, nullptr, log_text);
+            std::cerr << "----- Start Shader Program Log -----" << std::endl;
+            std::cerr << log_text << std::endl;
+            std::cerr << "----- End Shader Program Log -----" << std::endl;
+            delete [] log_text;
+        }
+
+        exit(EXIT_FAILURE);
+    }
+
+    return program;
+}
+
