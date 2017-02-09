@@ -53,6 +53,7 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+    glewExperimental = GL_TRUE;
     GLenum err = glewInit();
     if (GLEW_OK != err)
     {
@@ -63,8 +64,8 @@ int main() {
 
     gl_info();
     gl_print_extentions();
-    GLuint vertex_shader = load_shader(GL_VERTEX_SHADER, "./assets/default.vert");
-    GLuint fragment_shader = load_shader(GL_FRAGMENT_SHADER, "./assets/default.frag");
+    GLuint vertex_shader = load_shader(GL_VERTEX_SHADER, "./assets/basic.vert");
+    GLuint fragment_shader = load_shader(GL_FRAGMENT_SHADER, "./assets/basic.frag");
     std::vector<GLuint> shaders {vertex_shader, fragment_shader};
     GLuint shader_program = create_shader_program(shaders);
     glUseProgram(shader_program);
@@ -79,6 +80,39 @@ int main() {
     //float ratio = (float)SCREEN_W / (float)SCREEN_H;
 
     bool play = true;
+
+    float positionData[] = {
+        -0.8f, -0.8f, 0.0f,
+         0.8f, -0.8f, 0.0f,
+         0.0f,  0.8f, 0.0f,
+    };
+
+    float colorData[] = {
+        1.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 1.0f
+    };
+
+    GLuint vaoHandle;
+    GLuint vboHandles[2];
+    glGenBuffers(2, vboHandles);
+    GLuint positonBufferHundle = vboHandles[0];
+    GLuint colorBufferHandle = vboHandles[1];
+
+    glBindBuffer(GL_ARRAY_BUFFER, positonBufferHundle);
+    glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), positionData, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, colorBufferHandle);
+    glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), colorData, GL_STATIC_DRAW);
+
+    glGenVertexArrays(1, &vaoHandle);
+    glBindVertexArray(vaoHandle);
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+
+    glBindBuffer(GL_ARRAY_BUFFER, positonBufferHundle);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glBindBuffer(GL_ARRAY_BUFFER, colorBufferHandle);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
     while (play) {
         SDL_Event event;
@@ -98,8 +132,8 @@ int main() {
         }
 
         glClear(GL_COLOR_BUFFER_BIT);
-        glColor3f(1.0f, 0.22f, 0.0f); // Coquelicot #FF3800 RGB:100% 22% 0%
-        glRectf(-0.5, 0.5, 0.5, -0.5);
+        glBindVertexArray(vaoHandle);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
         SDL_GL_SwapWindow(win);
     }
