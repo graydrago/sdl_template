@@ -10,15 +10,12 @@
 #include <streambuf>
 #include <vector>
 
+#include "./headers/utils.h"
+#include "./headers/ShaderProgram.h"
+
 const int SCREEN_W {800};
 const int SCREEN_H {600};
 
-void gl_print_str (std::string name, GLenum _enum);
-void gl_info();
-void gl_print_extentions();
-std::string load_text_file (std::string name);
-GLuint load_shader(GLenum shader_type, std::string file_name);
-GLuint create_shader_program(std::vector<GLuint> shader_list);
 
 int main() {
 
@@ -64,13 +61,6 @@ int main() {
 
     gl_info();
     gl_print_extentions();
-    GLuint vertex_shader = load_shader(GL_VERTEX_SHADER, "./assets/basic.vert");
-    GLuint fragment_shader = load_shader(GL_FRAGMENT_SHADER, "./assets/basic.frag");
-    std::vector<GLuint> shaders {vertex_shader, fragment_shader};
-    GLuint shader_program = create_shader_program(shaders);
-    glUseProgram(shader_program);
-    glDeleteShader(vertex_shader);
-    glDeleteShader(fragment_shader);
 
     // This makes our buffer swap syncronized with the monitor's vertical refresh
     SDL_GL_SetSwapInterval(1);
@@ -103,6 +93,12 @@ int main() {
     glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), positionData, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, colorBufferHandle);
     glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), colorData, GL_STATIC_DRAW);
+
+    ShaderProgram program;
+    program.compile("./assets/basic.frag", GL_FRAGMENT_SHADER);
+    program.compile("./assets/basic.vert", GL_VERTEX_SHADER);
+    program.link();
+    program.use();
 
     glGenVertexArrays(1, &vaoHandle);
     glBindVertexArray(vaoHandle);
@@ -138,123 +134,8 @@ int main() {
         SDL_GL_SwapWindow(win);
     }
 
-    glUseProgram(0);
-    glDeleteProgram(shader_program);
-
     SDL_GL_DeleteContext(ctx);
     SDL_DestroyWindow(win);
     SDL_Quit();
-}
-
-void gl_print_extentions() {
-    PFNGLGETSTRINGIPROC glGetStringi = nullptr;
-    glGetStringi = (PFNGLGETSTRINGIPROC) SDL_GL_GetProcAddress("glGetStringi");
-
-    GLint nExtentions = 0;
-    glGetIntegerv(GL_NUM_EXTENSIONS, &nExtentions);
-    std::cout << nExtentions << std::endl;
-
-    for (int i = 0; i < nExtentions; i++) {
-        const GLubyte *value = glGetStringi(GL_EXTENSIONS, i);
-        if (value != nullptr) {
-            std::cout << value << std::endl;
-        }
-    }
-}
-
-void gl_info() {
-    gl_print_str("GL Renderer", GL_RENDERER);
-    gl_print_str("GL Vendor", GL_VENDOR);
-    gl_print_str("GL Version (string)", GL_VERSION);
-    gl_print_str("GLSL Version", GL_SHADING_LANGUAGE_VERSION);
-}
-
-void gl_print_str (std::string name, GLenum _enum) {
-    const GLubyte *value = glGetString(_enum);
-    if (value == nullptr) {
-        std::cerr << "Can't get '" << name << "'" << std::endl;
-    } else {
-        std::cout << name << ": " << value << std::endl;
-    }
-};
-
-std::string load_text_file (std::string name) {
-    std::ifstream t(name);
-    t.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-    std::string str((std::istreambuf_iterator<char>(t)),
-            std::istreambuf_iterator<char>());
-    std::cout << str.length() << std::endl;
-    return str;
-}
-
-GLuint load_shader(GLenum shader_type, std::string file_name) {
-    GLuint shader = glCreateShader(shader_type);
-    if (shader == 0) {
-        std::cerr << "Can't create a vertex shader\n";
-        exit(EXIT_FAILURE);
-    }
-
-    std::string shaderText = load_text_file(file_name);
-    const GLchar *shaderCode = shaderText.c_str();
-    const GLchar *codeArray[] = {shaderCode};
-    glShaderSource(shader, 1, codeArray, NULL);
-    glCompileShader(shader);
-
-    GLint result;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
-    if (GL_FALSE == result) {
-        std::cerr << "Can't compile a shader: " << file_name << std::endl;
-
-        GLint log_length = 0;
-        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &log_length);
-
-        GLchar *log_text = new GLchar[log_length];
-        glGetShaderInfoLog(shader, log_length, nullptr, log_text);
-
-        std::cerr << "----- Start Shader Log -----" << std::endl;
-        std::cerr << log_text << std::endl;
-        std::cerr << "----- End Shader Log -----" << std::endl;
-
-        delete [] log_text;
-        exit(EXIT_FAILURE);
-    }
-
-    return shader;
-}
-
-GLuint create_shader_program(std::vector<GLuint> shader_list) {
-    GLuint program = glCreateProgram();
-    if (program == 0) {
-        std::cerr << "Can't create a program" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-
-    for (auto shader : shader_list) {
-        glAttachShader(program, shader);
-    }
-
-    glLinkProgram(program);
-
-    GLint result;
-    glGetProgramiv(program, GL_LINK_STATUS, &result);
-    if (GL_FALSE == result) {
-        std::cerr << "Can't link a shader program." << std::endl;
-
-        GLint log_length = 0;
-        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &log_length);
-
-        if (log_length > 0) {
-            GLchar *log_text = new GLchar[log_length];
-            glGetProgramInfoLog(program, log_length, nullptr, log_text);
-            std::cerr << "----- Start Shader Program Log -----" << std::endl;
-            std::cerr << log_text << std::endl;
-            std::cerr << "----- End Shader Program Log -----" << std::endl;
-            delete [] log_text;
-        }
-
-        exit(EXIT_FAILURE);
-    }
-
-    return program;
 }
 
