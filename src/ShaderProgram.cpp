@@ -1,4 +1,6 @@
 #include <GL/glew.h>
+#include <glm/matrix.hpp>
+#include <glm/ext.hpp>
 #include "../headers/ShaderProgram.h"
 
 ShaderProgram::ShaderProgram() : handle(0) {}
@@ -100,4 +102,28 @@ void ShaderProgram::use() {
     }
 
     glUseProgram(handle);
+}
+
+void ShaderProgram::bindAttribLocation(const GLuint location, const std::string name) {
+    glBindAttribLocation(handle, location, name.c_str());
+}
+
+void ShaderProgram::setUniform(const std::string &name, const int value) {
+    GLuint location = glGetUniformLocation(handle, name.c_str());
+    glUniform1i(location, value);
+}
+
+void ShaderProgram::setUniform(const std::string &name, const float value) {
+    GLuint location = glGetUniformLocation(handle, name.c_str());
+    glUniform1f(location, value);
+}
+
+void ShaderProgram::setUniform(const std::string &name, const glm::mat3 &value) {
+    GLuint location = glGetUniformLocation(handle, name.c_str());
+    glUniformMatrix3fv(location, 1, GL_FALSE, &value[0][0]);
+}
+
+void ShaderProgram::setUniform(const std::string &name, const glm::mat4 &value) {
+    GLuint location = glGetUniformLocation(handle, name.c_str());
+    glUniformMatrix4fv(location, 1, GL_FALSE, &value[0][0]);
 }

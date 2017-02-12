@@ -9,6 +9,8 @@
 #include <fstream>
 #include <streambuf>
 #include <vector>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "./headers/utils.h"
 #include "./headers/ShaderProgram.h"
@@ -128,6 +130,10 @@ int main() {
         }
 
         glClear(GL_COLOR_BUFFER_BIT);
+        Uint32 elapsed = SDL_GetTicks();
+        program.setUniform("Scale", glm::sin((float) elapsed * 0.001f)*1.f);
+        glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), glm::radians((float) (elapsed/10 % 360)), glm::vec3(0.f, 0.f, 1.f));
+        program.setUniform("Rotation", rotate);
         glBindVertexArray(vaoHandle);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
