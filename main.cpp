@@ -14,6 +14,7 @@
 
 #include "./headers/utils.h"
 #include "./headers/ShaderProgram.h"
+#include "./headers/Model.h"
 
 const int SCREEN_W {800};
 const int SCREEN_H {600};
@@ -73,17 +74,17 @@ int main() {
 
     bool play = true;
 
-    float positionData[] = {
-        -0.8f, -0.8f, 0.0f,
-         0.8f, -0.8f, 0.0f,
-         0.0f,  0.8f, 0.0f,
-    };
+    Model model;
+    model.load("./assets/models/torus.obj");
 
-    float colorData[] = {
-        1.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 1.0f
-    };
+    std::vector<float> colorData;
+    for (int i = 0; i < static_cast<int>(model.vertices.size()); i++) {
+        if (i % 3 == 0) {
+            colorData.push_back(1.f);
+        } else {
+            colorData.push_back(0.f);
+        }
+    }
 
     GLuint vaoHandle;
     GLuint vboHandles[2];
@@ -92,9 +93,14 @@ int main() {
     GLuint colorBufferHandle = vboHandles[1];
 
     glBindBuffer(GL_ARRAY_BUFFER, positonBufferHundle);
-    glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), positionData, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, model.vertices.size() * sizeof(float), &(model.vertices)[0], GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, colorBufferHandle);
-    glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), colorData, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, colorData.size() * sizeof(float), &(colorData)[0], GL_STATIC_DRAW);
+
+    GLuint indexBufferHandle;
+    glGenBuffers(1, &indexBufferHandle);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferHandle);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, model.indeces.size() * sizeof(int), &(model.indeces)[0], GL_STATIC_DRAW);
 
     ShaderProgram program;
     program.compile("./assets/basic.frag", GL_FRAGMENT_SHADER);
@@ -132,10 +138,10 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
         Uint32 elapsed = SDL_GetTicks();
         program.setUniform("Scale", glm::sin((float) elapsed * 0.001f)*1.f);
-        glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), glm::radians((float) (elapsed/10 % 360)), glm::vec3(0.f, 0.f, 1.f));
+        glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), glm::radians((float) (elapsed/10 % 360)), glm::vec3(1.f, 0.f, 1.f));
         program.setUniform("Rotation", rotate);
-        glBindVertexArray(vaoHandle);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferHandle);
+        glDrawElements(GL_TRIANGLES, model.indeces.size(), GL_UNSIGNED_INT, NULL);
 
         SDL_GL_SwapWindow(win);
     }

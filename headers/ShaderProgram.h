@@ -8,7 +8,7 @@
 class ShaderProgramExeption : public std::runtime_error {
     public:
         ShaderProgramExeption(const std::string &msg) :
-            std::runtime_error(msg) {};
+            std::runtime_error(msg) {}
 };
 
 class ShaderProgram {
