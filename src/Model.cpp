@@ -13,7 +13,8 @@ void Model::load(std::string fileName) {
     using std::string;
     using std::istringstream;
 
-    std::ifstream file(fileName);
+    auto file_strings = loadTextFile(fileName);
+    std::istringstream file(file_strings);
     string line;
 
     while (getline(file, line)) {
@@ -25,6 +26,11 @@ void Model::load(std::string fileName) {
             string num;
             while (getline(line_stream, num, ' ')) {
                 vertices.push_back(::atof(num.c_str()));
+            }
+        } else if ("vn" == type) {
+            string num;
+            while (getline(line_stream, num, ' ')) {
+                normals.push_back(::atof(num.c_str()));
             }
         } else if ("f" == type) {
             string pack;

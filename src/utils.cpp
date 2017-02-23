@@ -4,10 +4,10 @@
 
 std::string loadTextFile (std::string name) {
     std::ifstream t(name);
-    t.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    //t.exceptions(std::ifstream::failbit | std::ifstream::badbit);
     std::string str((std::istreambuf_iterator<char>(t)),
             std::istreambuf_iterator<char>());
-    std::cout << str.length() << std::endl;
+    std::cout << name << " size: " << str.length() << std::endl;
     return str;
 }
 

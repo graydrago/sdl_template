@@ -1,11 +1,19 @@
 /* NOT FINISHED */
 #define GLEW_STATIC
 
-#include <iostream>
 #include <GL/glew.h>
-#include <SDL2/SDL.h>
+
+#ifdef __EMSCRIPTEN__
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <emscripten.h>
+#else
 #include <GL/gl.h>
 #include <GL/glext.h>
+#endif
+
+#include <iostream>
+#include <SDL2/SDL.h>
 #include <fstream>
 #include <streambuf>
 #include <vector>
@@ -19,6 +27,13 @@
 const int SCREEN_W {800};
 const int SCREEN_H {600};
 
+SDL_Window* win = nullptr;
+ShaderProgram* globalShaderProgram = nullptr;
+Model* globalModel = nullptr;
+GLuint indexBufferHandle;
+bool play = true;
+
+void loop();
 
 int main() {
 
@@ -27,17 +42,22 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+    #ifdef __EMSCRIPTEN__
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    #else
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    #endif
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
     SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 6);
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
 
-    SDL_Window* win = SDL_CreateWindow("Template",
+    win = SDL_CreateWindow("Template",
             SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
             SCREEN_W, SCREEN_H,
             SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
@@ -45,7 +65,12 @@ int main() {
     if (win == nullptr) {
         std::cerr << "Unable to create window: " << SDL_GetError() << std::endl;
         exit(EXIT_FAILURE);
+
     }
+
+    #ifdef TEST_SDL_LOCK_OPTS
+    EM_ASM("SDL.defaults.copyOnLock = false; SDL.defaults.discardOnLock = true; SDL.defaults.opaqueFrontBuffer = false;");
+    #endif
 
     SDL_GLContext ctx = SDL_GL_CreateContext(win);
     if (ctx == nullptr) {
@@ -62,51 +87,42 @@ int main() {
     }
     std::cout << "GLEW's been inited." << std::endl;
 
-    gl_info();
-    gl_print_extentions();
+    glEnable(GL_DEPTH_TEST);
 
-    // This makes our buffer swap syncronized with the monitor's vertical refresh
-    SDL_GL_SetSwapInterval(1);
+    gl_info();
 
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
-    //float ratio = (float)SCREEN_W / (float)SCREEN_H;
-
-    bool play = true;
-
     Model model;
+    globalModel = &model;
     model.load("./assets/models/torus.obj");
-
-    std::vector<float> colorData;
-    for (int i = 0; i < static_cast<int>(model.vertices.size()); i++) {
-        if (i % 3 == 0) {
-            colorData.push_back(1.f);
-        } else {
-            colorData.push_back(0.f);
-        }
-    }
 
     GLuint vaoHandle;
     GLuint vboHandles[2];
     glGenBuffers(2, vboHandles);
     GLuint positonBufferHundle = vboHandles[0];
-    GLuint colorBufferHandle = vboHandles[1];
+    GLuint normalBufferHandle = vboHandles[1];
 
     glBindBuffer(GL_ARRAY_BUFFER, positonBufferHundle);
     glBufferData(GL_ARRAY_BUFFER, model.vertices.size() * sizeof(float), &(model.vertices)[0], GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, colorBufferHandle);
-    glBufferData(GL_ARRAY_BUFFER, colorData.size() * sizeof(float), &(colorData)[0], GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, normalBufferHandle);
+    glBufferData(GL_ARRAY_BUFFER, model.normals.size() * sizeof(float), &(model.normals)[0], GL_STATIC_DRAW);
 
-    GLuint indexBufferHandle;
     glGenBuffers(1, &indexBufferHandle);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferHandle);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, model.indeces.size() * sizeof(int), &(model.indeces)[0], GL_STATIC_DRAW);
 
     ShaderProgram program;
+    #ifdef __EMSCRIPTEN__
+    program.compile("./assets/es2/es_basic.frag", GL_FRAGMENT_SHADER);
+    program.compile("./assets/es2/es_basic.vert", GL_VERTEX_SHADER);
+    #else
     program.compile("./assets/basic.frag", GL_FRAGMENT_SHADER);
-    program.compile("./assets/basic.vert", GL_VERTEX_SHADER);
+    program.compile("./assets/onePointLight.vert", GL_VERTEX_SHADER);
+    #endif
     program.link();
     program.use();
+    globalShaderProgram = &program;
 
     glGenVertexArrays(1, &vaoHandle);
     glBindVertexArray(vaoHandle);
@@ -115,39 +131,60 @@ int main() {
 
     glBindBuffer(GL_ARRAY_BUFFER, positonBufferHundle);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-    glBindBuffer(GL_ARRAY_BUFFER, colorBufferHandle);
+    glBindBuffer(GL_ARRAY_BUFFER, normalBufferHandle);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
+
+    #ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(loop, 0, 1);
+    #else
     while (play) {
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                play = false;
-            }
-
-            if (event.type == SDL_KEYDOWN) {
-                switch (event.key.keysym.sym) {
-                    case SDLK_ESCAPE:
-                    case SDLK_q:
-                        play = false;
-                        break;
-                }
-            }
-        }
-
-        glClear(GL_COLOR_BUFFER_BIT);
-        Uint32 elapsed = SDL_GetTicks();
-        program.setUniform("Scale", glm::sin((float) elapsed * 0.001f)*1.f);
-        glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), glm::radians((float) (elapsed/10 % 360)), glm::vec3(1.f, 0.f, 1.f));
-        program.setUniform("Rotation", rotate);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferHandle);
-        glDrawElements(GL_TRIANGLES, model.indeces.size(), GL_UNSIGNED_INT, NULL);
-
-        SDL_GL_SwapWindow(win);
+        loop();
     }
+    #endif
 
     SDL_GL_DeleteContext(ctx);
     SDL_DestroyWindow(win);
     SDL_Quit();
 }
 
+
+void loop() {
+  SDL_Event event;
+  while (SDL_PollEvent(&event)) {
+      if (event.type == SDL_QUIT) {
+          play = false;
+      }
+
+      if (event.type == SDL_KEYDOWN) {
+          switch (event.key.keysym.sym) {
+              case SDLK_ESCAPE:
+              case SDLK_q:
+                  play = false;
+                  break;
+          }
+      }
+  }
+
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  Uint32 elapsed = SDL_GetTicks();
+
+  glm::mat4 modelMatrix = glm::mat4(1.f);
+  modelMatrix = glm::scale(modelMatrix, glm::vec3(0.5f, 0.5f, 0.5f));
+  modelMatrix = glm::rotate(modelMatrix, glm::radians((float) (elapsed/10 % 360)), glm::vec3(1.f, 0.f, 1.f));
+
+  glm::mat4 viewMatrix = glm::lookAt(
+      glm::vec3(0.f, 0.f, 1.f),
+      glm::vec3(0.f, 0.f, 0.f),
+      glm::vec3(0.f, 1.f, 0.f));
+
+  glm::mat4 projectionMatrix = glm::perspective(45.f, (float)SCREEN_W/(float)SCREEN_H, 0.001f, 2.f);
+
+  globalShaderProgram->setUniform("VM", viewMatrix * modelMatrix);
+  globalShaderProgram->setUniform("PVM", projectionMatrix * viewMatrix * modelMatrix);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferHandle);
+  glDrawElements(GL_TRIANGLES, globalModel->indeces.size(), GL_UNSIGNED_INT, NULL);
+
+  SDL_GL_SwapWindow(win);
+}

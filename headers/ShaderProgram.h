@@ -1,7 +1,7 @@
 #pragma once
 
 #include <iostream>
-#include <GL/gl.h>
+#include <EGL/egl.h>
 #include <glm/matrix.hpp>
 #include "../headers/utils.h"
 
@@ -26,4 +26,6 @@ class ShaderProgram {
         void setUniform(const std::string &name, const float value);
         void setUniform(const std::string &name, const glm::mat3 &value);
         void setUniform(const std::string &name, const glm::mat4 &value);
+        void setUniform(const std::string &name, const glm::vec3 &value);
+        void setUniform(const std::string &name, const glm::vec4 &value);
 };

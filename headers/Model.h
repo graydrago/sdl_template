@@ -14,7 +14,7 @@ class Model {
     public:
         std::vector<float> vertices;
         std::vector<int> indeces;
-        std::vector<float> faces;
+        std::vector<float> normals;
     //public:
         Model();
         virtual ~Model() {};
