@@ -15,8 +15,10 @@ class Model {
         std::vector<float> vertices;
         std::vector<int> indeces;
         std::vector<float> normals;
-    //public:
+        std::string fileName;
+
         Model();
         virtual ~Model() {};
         void load(std::string fileName);
+        void printInfo();
 };
