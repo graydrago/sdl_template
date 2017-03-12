@@ -20,8 +20,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "./headers/utils.h"
-#include "./headers/ShaderProgram.h"
 #include "./headers/Model.h"
 #include "./headers/Normals.h"
 
@@ -29,12 +27,7 @@ const int SCREEN_W {800};
 const int SCREEN_H {600};
 
 SDL_Window* win = nullptr;
-ShaderProgram* globalShaderProgram = nullptr;
 Model* globalModel = nullptr;
-Normals* globalNormal = nullptr;
-GLuint vaoHandle;
-GLuint indexBufferHandle;
-GLuint positonBufferHundle;
 bool play = true;
 
 void loop();
@@ -90,6 +83,9 @@ int main() {
         exit(EXIT_FAILURE);
     }
     std::cout << "GLEW's been inited." << std::endl;
+    // If there is "Invalid enum", then it's ok.
+    // https://www.khronos.org/opengl/wiki/OpenGL_Loading_Library
+    gl_check_error();
 
     glEnable(GL_DEPTH_TEST);
 
@@ -100,47 +96,6 @@ int main() {
     Model model;
     globalModel = &model;
     model.load("./assets/models/monkey.obj");
-    model.printInfo();
-
-    Normals normals(model);
-    globalNormal = &normals;
-
-    GLuint vboHandles[2];
-    glGenBuffers(2, vboHandles);
-    positonBufferHundle = vboHandles[0];
-    GLuint normalBufferHandle = vboHandles[1];
-
-    glBindBuffer(GL_ARRAY_BUFFER, positonBufferHundle);
-    //glBufferData(GL_ARRAY_BUFFER, model.vertices.size() * sizeof(float), &(model.vertices)[0], GL_STATIC_DRAW);
-    glBufferData(GL_ARRAY_BUFFER, model.vertices.size() * sizeof(float), &(model.vertices)[0], GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, normalBufferHandle);
-    glBufferData(GL_ARRAY_BUFFER, model.normals.size() * sizeof(float), &(model.normals)[0], GL_STATIC_DRAW);
-
-    //glGenBuffers(1, &indexBufferHandle);
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferHandle);
-    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, model.indeces.size() * sizeof(int), &(model.indeces)[0], GL_STATIC_DRAW);
-
-    ShaderProgram program;
-    #ifdef __EMSCRIPTEN__
-    program.compile("./assets/es2/es_basic.frag", GL_FRAGMENT_SHADER);
-    program.compile("./assets/es2/es_basic.vert", GL_VERTEX_SHADER);
-    #else
-    program.compile("./assets/onePointLight.frag", GL_FRAGMENT_SHADER);
-    program.compile("./assets/onePointLight.vert", GL_VERTEX_SHADER);
-    #endif
-    program.link();
-    program.use();
-    globalShaderProgram = &program;
-
-    glGenVertexArrays(1, &vaoHandle);
-    glBindVertexArray(vaoHandle);
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-
-    glBindBuffer(GL_ARRAY_BUFFER, positonBufferHundle);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-    glBindBuffer(GL_ARRAY_BUFFER, normalBufferHandle);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
     #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(loop, 0, 1);
@@ -187,20 +142,11 @@ void loop() {
 
   glm::mat4 projectionMatrix = glm::perspective(45.f, (float)SCREEN_W/(float)SCREEN_H, 0.001f, 4.f);
 
-  glm::mat4 PVM = projectionMatrix * viewMatrix * modelMatrix;
+  glm::mat4 VM = viewMatrix * modelMatrix;
+  glm::mat4 PVM = projectionMatrix * VM;
+  glm::mat3 NM = glm::mat3(glm::transpose(glm::inverse(VM)));
 
-  globalShaderProgram->use();
-  globalShaderProgram->setUniform("VM", viewMatrix * modelMatrix);
-  globalShaderProgram->setUniform("PVM", PVM);
-  globalShaderProgram->setUniform("NM", glm::mat3(glm::transpose(glm::inverse(viewMatrix * modelMatrix))));
-
-  glBindVertexArray(vaoHandle);
-  //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferHandle);
-  //glDrawElements(GL_TRIANGLES, globalModel->indeces.size(), GL_UNSIGNED_INT, NULL);
-  glBindBuffer(GL_ARRAY_BUFFER, positonBufferHundle);
-  glDrawArrays(GL_TRIANGLES, 0, globalModel->vertices.size());
-
-  globalNormal->render(PVM);
+  globalModel->render(VM, PVM, NM);
 
   SDL_GL_SwapWindow(win);
 }

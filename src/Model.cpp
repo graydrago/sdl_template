@@ -1,85 +1,86 @@
 #include <fstream>
 #include <sstream>
 #include <stdlib.h>
+#include <GL/glew.h>
+#include <SDL2/SDL.h>
 #include "../headers/Model.h"
 #include "../headers/utils.h"
 
-Model::Model() {}
 
-void Model::load(std::string fileName) {
-    //TODO Add error handling
-    using std::getline;
-    using std::string;
-    using std::istringstream;
+Model::Model() {
+    color = glm::vec3(0.f, 0.f, 1.f);
+}
+
+
+Model::~Model() {}
+
+
+void Model::load(std::string geometryFileName) {
     using std::cout;
     using std::endl;
 
-    this->fileName = fileName;
+    std::vector<float> vertices;
+    std::vector<float> normals;
 
-    auto file_strings = loadTextFile(fileName);
-    std::istringstream file(file_strings);
-    string line;
-    std::vector<float> tmp_vertices;
-    std::vector<float> tmp_normals;
+    geometry.load(geometryFileName);
 
-    while (getline(file, line)) {
-        string type;
-        istringstream line_stream(line);
-
-        getline(line_stream, type, ' ');
-        if ("v" == type) {
-            string num;
-            while (getline(line_stream, num, ' ')) {
-                tmp_vertices.push_back(::atof(num.c_str()));
-            }
-        } else if ("vn" == type) {
-            string num;
-            while (getline(line_stream, num, ' ')) {
-                tmp_normals.push_back(::atof(num.c_str()));
-            }
-        } else if ("f" == type) {
-            string pack;
-            while (getline(line_stream, pack, ' ')) {
-                int pos = pack.find('/');
-                string vertex_index_str = pack.substr(0, pos);
-                if (pack[pos] != pack[pos+1]) {
-                  // TODO Textures
-                } else {
-                  pos += 2;
-                }
-                string normal_index_str = pack.substr(pos, pack.length());
-
-                int vertex_index = ::atoi(vertex_index_str.c_str()) - 1;
-                int normal_index = ::atof(normal_index_str.c_str()) - 1;
-
-                vertices.push_back(tmp_vertices[vertex_index * 3]);
-                vertices.push_back(tmp_vertices[vertex_index * 3 + 1]);
-                vertices.push_back(tmp_vertices[vertex_index * 3 + 2]);
-
-                normals.push_back(tmp_normals[normal_index * 3]);
-                normals.push_back(tmp_normals[normal_index * 3 + 1]);
-                normals.push_back(tmp_normals[normal_index * 3 + 2]);
-            }
-        }
+    for (auto item : geometry.verticesIndeces()) {
+        vertices.push_back(geometry.vertices()[item * 3 ]);
+        vertices.push_back(geometry.vertices()[item * 3 + 1]);
+        vertices.push_back(geometry.vertices()[item * 3 + 2]);
+    }
+    for (auto item : geometry.normalsIndeces()) {
+        normals.push_back(geometry.normals()[item * 3 ]);
+        normals.push_back(geometry.normals()[item * 3 + 1]);
+        normals.push_back(geometry.normals()[item * 3 + 2]);
     }
 
-    for (auto i : indeces) {
-      cout << "id " << i << "\n";
-      cout << "v(" << vertices[i*3] << ", "
-                   << vertices[i*3+1]  << ", "
-                   << vertices[i*3+2]  << ")\n";
-      cout << "n(" << normals[i*3] << ", "
-                   << normals[i*3+1]  << ", "
-                   << normals[i*3+2]  << ")\n";
-    }
+    glGenBuffers(1, &vertexBufferHandle);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferHandle);
+    glBufferData(GL_ARRAY_BUFFER,
+            vertices.size() * sizeof(float),
+            &(vertices)[0],
+            GL_STATIC_DRAW);
+
+    glGenBuffers(1, &normalBufferHandle);
+    glBindBuffer(GL_ARRAY_BUFFER, normalBufferHandle);
+    glBufferData(GL_ARRAY_BUFFER,
+            normals.size() * sizeof(float),
+            &(normals)[0],
+            GL_STATIC_DRAW);
+
+    glGenVertexArrays(1, &vaoHandle);
+    glBindVertexArray(vaoHandle);
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferHandle);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glBindBuffer(GL_ARRAY_BUFFER, normalBufferHandle);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    cout << vertices.size() << endl;
+    cout << normals.size() << endl;
+
+    shaderProgram.compile("./assets/onePointLight.frag", GL_FRAGMENT_SHADER);
+    shaderProgram.compile("./assets/onePointLight.vert", GL_VERTEX_SHADER);
+    shaderProgram.link();
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    gl_check_error();
 }
 
-void Model::printInfo() {
-  using std::cout;
-  using std::endl;
+void Model::render(const glm::mat4 &VM, const glm::mat4 &PVM, const glm::mat3 &NM) {
+    shaderProgram.use();
+    shaderProgram.setUniform("Color", color);
+    shaderProgram.setUniform("PVM", PVM);
+    shaderProgram.setUniform("VM", VM);
+    shaderProgram.setUniform("NM", NM);
 
-  cout << "Model: " << fileName << endl;
-  cout << "vertices: " << vertices.size() << endl;
-  cout << "indeces: " << indeces.size() << endl;
-  cout << "normals: " << normals.size() << endl;
+    glBindVertexArray(vaoHandle);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferHandle);
+
+    glDrawArrays(GL_TRIANGLES, 0, geometry.verticesIndeces().size());
 }

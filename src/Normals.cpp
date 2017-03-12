@@ -3,9 +3,6 @@
 
 
 Normals::Normals(Model model) {
-    using std::cout;
-    using std::endl;
-
     if (model.indeces.size() == 0 && model.vertices.size() == model.normals.size()) {
         for (int i = 0; i < (int) model.vertices.size(); i += 3) {
             glm::vec3 start_point(model.vertices[i], model.vertices[i+1], model.vertices[i+2]);
@@ -38,9 +35,6 @@ Normals::Normals(Model model) {
             vertices.push_back(end_point.z);
         }
     }
-
-    cout << "Normals Vertices: " << vertices.size() << endl;
-
 
     glGenBuffers(1, &vertexBufferHundle);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBufferHundle);
