@@ -3,10 +3,23 @@
 #include "../headers/utils.h"
 
 std::string loadTextFile(std::string name) {
-    std::ifstream t(name);
-    //t.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-    std::string str((std::istreambuf_iterator<char>(t)),
-            std::istreambuf_iterator<char>());
+    std::ifstream f;
+    f.open(name);
+    if (!f.is_open()) {
+        throw std::runtime_error("Can't load a file: " + name);
+    }
+
+    f.seekg(0, f.end);
+    int fileLength = f.tellg();
+    f.seekg(0, f.beg);
+
+    char *fileData = new char[fileLength+1];
+    f.read(fileData, fileLength);
+    fileData[fileLength] = '\0';
+
+    std::string str(fileData);
+    delete [] fileData;
+
     std::cout << name << " size: " << str.length() << std::endl;
     return str;
 }

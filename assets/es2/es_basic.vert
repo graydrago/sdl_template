@@ -1,7 +1,5 @@
 precision mediump float;
 
-/*layout (location=0) attribute vec3 VertexPosition;*/
-/*layout (location=1) attribute vec3 VertexColor;*/
 attribute vec3 VertexPosition;
 attribute vec3 VertexNormal;
 

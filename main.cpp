@@ -33,7 +33,6 @@ bool play = true;
 void loop();
 
 int main() {
-
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         std::cerr << "Unable to init SDL: " << SDL_GetError() << std::endl;
         exit(EXIT_FAILURE);
@@ -95,7 +94,7 @@ int main() {
 
     Model model;
     globalModel = &model;
-    model.load("./assets/models/monkey.obj");
+    model.load("./assets/models/monkey.ob");
 
     #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(loop, 0, 1);

@@ -62,8 +62,13 @@ void Model::load(std::string geometryFileName) {
     cout << vertices.size() << endl;
     cout << normals.size() << endl;
 
+    #ifdef __EMSCRIPTEN__
+    shaderProgram.compile("./assets/es2/es_onePointLight.frag", GL_FRAGMENT_SHADER);
+    shaderProgram.compile("./assets/es2/es_onePointLight.vert", GL_VERTEX_SHADER);
+    #else
     shaderProgram.compile("./assets/onePointLight.frag", GL_FRAGMENT_SHADER);
     shaderProgram.compile("./assets/onePointLight.vert", GL_VERTEX_SHADER);
+    #endif
     shaderProgram.link();
 
     glBindVertexArray(0);
