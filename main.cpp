@@ -17,6 +17,7 @@
 #include <fstream>
 #include <streambuf>
 #include <vector>
+#include <memory>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -26,8 +27,10 @@
 const int SCREEN_W {800};
 const int SCREEN_H {600};
 
-SDL_Window* win = nullptr;
-Model* globalModel = nullptr;
+std::unique_ptr<SDL_Window, void(*)(SDL_Window*)> win {
+  nullptr, [](SDL_Window* p) { SDL_DestroyWindow(p); SDL_Quit(); }
+};
+std::unique_ptr<Model> globalModel {nullptr};
 bool play = true;
 
 void loop();
@@ -53,22 +56,24 @@ int main() {
     SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 6);
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
 
-    win = SDL_CreateWindow("Template",
-            SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-            SCREEN_W, SCREEN_H,
-            SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
-
+    win.reset(SDL_CreateWindow(
+        "Template",
+        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        SCREEN_W, SCREEN_H,
+        SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL));
     if (win == nullptr) {
         std::cerr << "Unable to create window: " << SDL_GetError() << std::endl;
         exit(EXIT_FAILURE);
-
     }
 
     #ifdef TEST_SDL_LOCK_OPTS
     EM_ASM("SDL.defaults.copyOnLock = false; SDL.defaults.discardOnLock = true; SDL.defaults.opaqueFrontBuffer = false;");
     #endif
 
-    SDL_GLContext ctx = SDL_GL_CreateContext(win);
+    std::unique_ptr<void, void(*)(void* p)> ctx(
+      SDL_GL_CreateContext(win.get()),
+      [](void* p) { SDL_GL_DeleteContext(p); }
+    );
     if (ctx == nullptr) {
         std::cerr << "Unable to create GL Context: " << SDL_GetError() << std::endl;
         exit(EXIT_FAILURE);
@@ -92,9 +97,35 @@ int main() {
 
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
-    Model model;
-    globalModel = &model;
-    model.load("./assets/models/monkey.ob");
+    std::shared_ptr<ShaderProgram> shaderProgram(new ShaderProgram());
+    #ifdef __EMSCRIPTEN__
+    shaderProgram->compile("./assets/es2/es_onePointLight.frag", GL_FRAGMENT_SHADER);
+    shaderProgram->compile("./assets/es2/es_onePointLight.vert", GL_VERTEX_SHADER);
+    #else
+    shaderProgram->compile("./assets/onePointLight.frag", GL_FRAGMENT_SHADER);
+    shaderProgram->compile("./assets/onePointLight.vert", GL_VERTEX_SHADER);
+    #endif
+    shaderProgram->link();
+
+    globalModel.reset(new Model);
+    globalModel->load("./assets/models/monkey.obj");
+    globalModel->attachShader(shaderProgram);
+
+
+    for (int i = -5; i <= 5; i++) {
+      std::unique_ptr<Model> cube{new Model()};
+      cube->load("./assets/models/cube.obj");
+      cube->attachShader(shaderProgram);
+      cube->local_matrix = glm::mat4(1.f);
+      cube->local_matrix = glm::scale(cube->local_matrix, glm::vec3(0.2, 0.2, 0.2));
+      cube->local_matrix = glm::translate(
+          cube->local_matrix,
+          //glm::vec3(std::rand()*3.0, std::rand()*3.0, std::rand()*3.0));
+          glm::vec3(i, i, i));
+      float tc = (i+5.0)/10.0;
+      cube->color(glm::vec3(tc, tc, tc));
+      globalModel->addChild(std::move(cube));
+    }
 
     #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(loop, 0, 1);
@@ -103,10 +134,6 @@ int main() {
         loop();
     }
     #endif
-
-    SDL_GL_DeleteContext(ctx);
-    SDL_DestroyWindow(win);
-    SDL_Quit();
 }
 
 
@@ -130,22 +157,26 @@ void loop() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   Uint32 elapsed = SDL_GetTicks();
 
-  glm::mat4 modelMatrix = glm::mat4(1.f);
-  //modelMatrix = glm::scale(modelMatrix, glm::vec3(0.3f, 0.3f, 0.3f));
-  modelMatrix = glm::rotate(modelMatrix, glm::radians((float) (elapsed/10 % 360)), glm::vec3(0.f, 1.f, 0.f));
+  globalModel->global_matrix = glm::mat4(1.f);
+
+  globalModel->local_matrix = glm::mat4(1.f);
+  globalModel->local_matrix = glm::rotate(
+      globalModel->local_matrix,
+      glm::radians((float) (elapsed/10 % 360)), glm::vec3(0.f, 1.f, 0.f));
 
   glm::mat4 viewMatrix = glm::lookAt(
-      glm::vec3(0.f, 1.f, 2.f),
-      glm::vec3(0.f, 0.f, 0.f),
+      glm::vec3(0.f, 0.2f, 0.8f),
+      glm::vec3(
+          globalModel->global_matrix[3][0],
+          globalModel->global_matrix[3][1],
+          globalModel->global_matrix[3][2]
+      ),
       glm::vec3(0.f, 1.f, 0.f));
+  viewMatrix = glm::scale(viewMatrix, glm::vec3(0.2, 0.2, 0.2));
 
   glm::mat4 projectionMatrix = glm::perspective(45.f, (float)SCREEN_W/(float)SCREEN_H, 0.001f, 4.f);
 
-  glm::mat4 VM = viewMatrix * modelMatrix;
-  glm::mat4 PVM = projectionMatrix * VM;
-  glm::mat3 NM = glm::mat3(glm::transpose(glm::inverse(VM)));
+  globalModel->render(viewMatrix, projectionMatrix);
 
-  globalModel->render(VM, PVM, NM);
-
-  SDL_GL_SwapWindow(win);
+  SDL_GL_SwapWindow(win.get());
 }

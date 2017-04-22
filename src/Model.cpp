@@ -3,12 +3,16 @@
 #include <stdlib.h>
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include "../headers/Model.h"
 #include "../headers/utils.h"
 
 
 Model::Model() {
-    color = glm::vec3(0.f, 0.f, 1.f);
+    m_color = glm::vec3(0.f, 0.f, 1.f);
+    local_matrix = glm::mat4(1.f);
+    global_matrix = glm::mat4(1.f);
 }
 
 
@@ -62,30 +66,44 @@ void Model::load(std::string geometryFileName) {
     cout << vertices.size() << endl;
     cout << normals.size() << endl;
 
-    #ifdef __EMSCRIPTEN__
-    shaderProgram.compile("./assets/es2/es_onePointLight.frag", GL_FRAGMENT_SHADER);
-    shaderProgram.compile("./assets/es2/es_onePointLight.vert", GL_VERTEX_SHADER);
-    #else
-    shaderProgram.compile("./assets/onePointLight.frag", GL_FRAGMENT_SHADER);
-    shaderProgram.compile("./assets/onePointLight.vert", GL_VERTEX_SHADER);
-    #endif
-    shaderProgram.link();
-
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     gl_check_error();
 }
 
-void Model::render(const glm::mat4 &VM, const glm::mat4 &PVM, const glm::mat3 &NM) {
-    shaderProgram.use();
-    shaderProgram.setUniform("Color", color);
-    shaderProgram.setUniform("PVM", PVM);
-    shaderProgram.setUniform("VM", VM);
-    shaderProgram.setUniform("NM", NM);
+void Model::render(const glm::mat4 &V, const glm::mat4 &P) {
+    auto VM = V * global_matrix * local_matrix;
+    auto PVM = P * VM;
+    auto NM = glm::mat3(glm::transpose(glm::inverse(VM)));
+
+    shaderProgram->use();
+    shaderProgram->setUniform("Color", m_color);
+    shaderProgram->setUniform("PVM", PVM);
+    shaderProgram->setUniform("VM", VM);
+    shaderProgram->setUniform("NM", NM);
 
     glBindVertexArray(vaoHandle);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBufferHandle);
 
     glDrawArrays(GL_TRIANGLES, 0, geometry.verticesIndeces().size());
+
+    for (auto& child : children) {
+      child->render(VM, P);
+    }
+}
+
+
+void Model::attachShader(std::shared_ptr<ShaderProgram> shader) {
+  shaderProgram = shader;
+}
+
+
+void Model::addChild(std::unique_ptr<Model> model) {
+  children.push_back(std::move(model));
+}
+
+
+void Model::color(const glm::vec3& _color) noexcept {
+  m_color = _color;
 }
