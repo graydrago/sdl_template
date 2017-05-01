@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <functional>
 #include "ShaderProgram.h"
 #include "Geometry.h"
 
@@ -18,21 +19,25 @@ class Model {
         Geometry geometry;
         glm::vec3 m_color;
         std::shared_ptr<ShaderProgram> shaderProgram;
+        std::function<void(Model&, float)> update_cb;
         std::vector<std::unique_ptr<Model>> children;
 
         GLuint vertexBufferHandle;
         GLuint normalBufferHandle;
         GLuint vaoHandle;
+        bool has_loaded_movel;
 
     public:
-        glm::mat4 local_matrix;
-        glm::mat4 global_matrix;
+        glm::mat4 matrix;
+
 
         Model();
         virtual ~Model();
         void load(std::string geometryFileName);
         void attachShader(std::shared_ptr<ShaderProgram> shader);
+        void update(float elapsed_time);
         void render(const glm::mat4 &V, const glm::mat4 &P);
+        void setUpdateCb(std::function<void(Model&, float)> cb);
         void addChild(std::unique_ptr<Model> model);
         void color(const glm::vec3& _color) noexcept;
 };

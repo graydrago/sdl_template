@@ -11,8 +11,9 @@
 
 Model::Model() {
     m_color = glm::vec3(0.f, 0.f, 1.f);
-    local_matrix = glm::mat4(1.f);
-    global_matrix = glm::mat4(1.f);
+    matrix = glm::mat4(1.f);
+    has_loaded_movel = false;
+    update_cb = nullptr;
 }
 
 
@@ -70,23 +71,26 @@ void Model::load(std::string geometryFileName) {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     gl_check_error();
+    has_loaded_movel = true;
 }
 
 void Model::render(const glm::mat4 &V, const glm::mat4 &P) {
-    auto VM = V * global_matrix * local_matrix;
-    auto PVM = P * VM;
-    auto NM = glm::mat3(glm::transpose(glm::inverse(VM)));
+    auto VM = V * matrix;
+    if (has_loaded_movel) {
+      auto PVM = P * VM;
+      auto NM = glm::mat3(glm::transpose(glm::inverse(VM)));
 
-    shaderProgram->use();
-    shaderProgram->setUniform("Color", m_color);
-    shaderProgram->setUniform("PVM", PVM);
-    shaderProgram->setUniform("VM", VM);
-    shaderProgram->setUniform("NM", NM);
+      shaderProgram->use();
+      shaderProgram->setUniform("Color", m_color);
+      shaderProgram->setUniform("PVM", PVM);
+      shaderProgram->setUniform("VM", VM);
+      shaderProgram->setUniform("NM", NM);
 
-    glBindVertexArray(vaoHandle);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferHandle);
+      glBindVertexArray(vaoHandle);
+      glBindBuffer(GL_ARRAY_BUFFER, vertexBufferHandle);
 
-    glDrawArrays(GL_TRIANGLES, 0, geometry.verticesIndeces().size());
+      glDrawArrays(GL_TRIANGLES, 0, geometry.verticesIndeces().size());
+    }
 
     for (auto& child : children) {
       child->render(VM, P);
@@ -100,10 +104,25 @@ void Model::attachShader(std::shared_ptr<ShaderProgram> shader) {
 
 
 void Model::addChild(std::unique_ptr<Model> model) {
-  children.push_back(std::move(model));
+    children.push_back(std::move(model));
 }
 
 
 void Model::color(const glm::vec3& _color) noexcept {
-  m_color = _color;
+    m_color = _color;
+}
+
+
+void Model::setUpdateCb(std::function<void(Model&, float)> cb) {
+    update_cb = cb;
+}
+
+void Model::update(float elapsed_time) {
+    if (update_cb) {
+        update_cb(*this, elapsed_time);
+    }
+
+    for (auto& child : children) {
+        child->update(elapsed_time);
+    }
 }

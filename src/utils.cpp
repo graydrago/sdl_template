@@ -79,3 +79,5 @@ void gl_check_error() {
         std::cout << "GL Error:" << err << ":" << gl_get_error_string(err) << std::endl;
     }
 }
+
+

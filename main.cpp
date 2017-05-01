@@ -18,11 +18,13 @@
 #include <streambuf>
 #include <vector>
 #include <memory>
+#include <chrono>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "./headers/Model.h"
 #include "./headers/Normals.h"
+#include "./headers/Control.h"
 
 const int SCREEN_W {800};
 const int SCREEN_H {600};
@@ -32,6 +34,8 @@ std::unique_ptr<SDL_Window, void(*)(SDL_Window*)> win {
 };
 std::unique_ptr<Model> globalModel {nullptr};
 bool play = true;
+Uint32 last_frame_time{};
+Control control{};
 
 void loop();
 
@@ -108,29 +112,51 @@ int main() {
     shaderProgram->link();
 
     globalModel.reset(new Model);
-    globalModel->load("./assets/models/monkey.obj");
-    globalModel->attachShader(shaderProgram);
-
+    
+    std::srand(std::chrono::system_clock::now().time_since_epoch().count());
 
     for (int i = -5; i <= 5; i++) {
       std::unique_ptr<Model> cube{new Model()};
-      cube->load("./assets/models/cube.obj");
+      cube->load("./assets/models/monkey.obj");
       cube->attachShader(shaderProgram);
-      cube->local_matrix = glm::mat4(1.f);
-      cube->local_matrix = glm::scale(cube->local_matrix, glm::vec3(0.2, 0.2, 0.2));
-      cube->local_matrix = glm::translate(
-          cube->local_matrix,
-          //glm::vec3(std::rand()*3.0, std::rand()*3.0, std::rand()*3.0));
+      cube->matrix = glm::mat4(1.f);
+      cube->matrix = glm::scale(cube->matrix, glm::vec3(0.2, 0.2, 0.2));
+      cube->matrix = glm::translate(
+          cube->matrix,
           glm::vec3(i, i, i));
-      float tc = (i+5.0)/10.0;
-      cube->color(glm::vec3(tc, tc, tc));
+      //float tc = (i+5.0)/10.0;
+      cube->color(glm::vec3(
+          std::rand() % 255 * (1.f/255.f),
+          std::rand() % 255 * (1.f/255.f),
+          std::rand() % 255 * (1.f/255.f)
+      ));
+
+      cube->setUpdateCb([](Model &m, float elapsed) -> void {
+          m.matrix *= glm::rotate(glm::mat4(1.f), elapsed * 3.14f, glm::vec3(0.f, 1.f, 0.f));
+      });
       globalModel->addChild(std::move(cube));
     }
 
+    globalModel->setUpdateCb([](Model &m, float elapsed) -> void {
+        if (control.left) {
+            m.matrix *= glm::rotate(glm::mat4(1.f), elapsed * 3.14f, glm::vec3(0.f, 1.f, 0.f));
+        }
+        if (control.right) {
+            m.matrix *= glm::rotate(glm::mat4(1.f), -1 * elapsed * 3.14f, glm::vec3(0.f, 1.f, 0.f));
+        }
+        if (control.up) {
+            m.matrix *= glm::rotate(glm::mat4(1.f), elapsed * 3.14f, glm::vec3(1.f, 0.f, 0.f));
+        }
+        if (control.down) {
+            m.matrix *= glm::rotate(glm::mat4(1.f), -1 * elapsed * 3.14f, glm::vec3(1.f, 0.f, 0.f));
+        }
+    });
+
+    last_frame_time = SDL_GetTicks();
     #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(loop, 0, 1);
     #else
-    while (play) {
+    while (control.play) {
         loop();
     }
     #endif
@@ -146,36 +172,60 @@ void loop() {
 
       if (event.type == SDL_KEYDOWN) {
           switch (event.key.keysym.sym) {
+              case SDLK_a:
+                  control.left = true;
+                  break;
+              case SDLK_d:
+                  control.right = true;
+                  break;
+              case SDLK_w:
+                  control.up = true;
+                  break;
+              case SDLK_s:
+                  control.down = true;
+                  break;
               case SDLK_ESCAPE:
               case SDLK_q:
-                  play = false;
+                  control.play = false;
+                  break;
+          }
+      } else if (event.type == SDL_KEYUP) {
+          switch (event.key.keysym.sym) {
+              case SDLK_a:
+                  control.left = false;
+                  break;
+              case SDLK_d:
+                  control.right = false;
+                  break;
+              case SDLK_w:
+                  control.up = false;
+                  break;
+              case SDLK_s:
+                  control.down = false;
                   break;
           }
       }
   }
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  Uint32 elapsed = SDL_GetTicks();
-
-  globalModel->global_matrix = glm::mat4(1.f);
-
-  globalModel->local_matrix = glm::mat4(1.f);
-  globalModel->local_matrix = glm::rotate(
-      globalModel->local_matrix,
-      glm::radians((float) (elapsed/10 % 360)), glm::vec3(0.f, 1.f, 0.f));
+  Uint32 elapsed_since_start_program = SDL_GetTicks();
+  Uint32 elapsed_since_last_frame = elapsed_since_start_program - last_frame_time;
+  float elapsed_seconds = (float) elapsed_since_last_frame * 0.001;
+  last_frame_time = elapsed_since_start_program;
 
   glm::mat4 viewMatrix = glm::lookAt(
       glm::vec3(0.f, 0.2f, 0.8f),
       glm::vec3(
-          globalModel->global_matrix[3][0],
-          globalModel->global_matrix[3][1],
-          globalModel->global_matrix[3][2]
+          globalModel->matrix[3][0],
+          globalModel->matrix[3][1],
+          globalModel->matrix[3][2]
       ),
       glm::vec3(0.f, 1.f, 0.f));
-  viewMatrix = glm::scale(viewMatrix, glm::vec3(0.2, 0.2, 0.2));
+  viewMatrix = glm::scale(viewMatrix, glm::vec3(0.3, 0.3, 0.3));
 
   glm::mat4 projectionMatrix = glm::perspective(45.f, (float)SCREEN_W/(float)SCREEN_H, 0.001f, 4.f);
 
+  globalModel->update(elapsed_seconds);
   globalModel->render(viewMatrix, projectionMatrix);
 
   SDL_GL_SwapWindow(win.get());
