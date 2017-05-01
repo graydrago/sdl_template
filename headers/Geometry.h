@@ -11,20 +11,20 @@ class GeometryExeption : public std::runtime_error {
 
 class Geometry {
     private:
-        std::vector<float> _vertices;
-        std::vector<float> _normals;
-        std::vector<int> _verticesIndeces;
-        std::vector<int> _normalsIndeces;
-        std::string _fileName;
+        std::vector<float> m_vertices;
+        std::vector<float> m_normals;
+        std::vector<int> m_verticesIndeces;
+        std::vector<int> m_normalsIndeces;
+        std::string m_fileName;
 
     public:
         Geometry() {};
         virtual ~Geometry() {};
         void load(std::string fileName);
 
-        std::vector<float>& vertices() { return _vertices; }
-        std::vector<float>& normals() { return _normals; }
-        std::vector<int>& verticesIndeces() { return _verticesIndeces; }
-        std::vector<int>& normalsIndeces() { return _normalsIndeces; }
-        std::string& fileName() { return _fileName; }
+        std::vector<float>& vertices() { return m_vertices; }
+        std::vector<float>& normals() { return m_normals; }
+        std::vector<int>& verticesIndeces() { return m_verticesIndeces; }
+        std::vector<int>& normalsIndeces() { return m_normalsIndeces; }
+        std::string& fileName() { return m_fileName; }
 };

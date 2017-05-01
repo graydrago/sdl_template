@@ -76,30 +76,34 @@ void Model::load(std::string geometryFileName) {
 
 void Model::render(const glm::mat4 &V, const glm::mat4 &P) {
     auto VM = V * matrix;
-    if (has_loaded_movel) {
-      auto PVM = P * VM;
-      auto NM = glm::mat3(glm::transpose(glm::inverse(VM)));
+    if (m_mesh && m_shaderProgram) {
+        auto PVM = P * VM;
+        auto NM = glm::mat3(glm::transpose(glm::inverse(VM)));
 
-      shaderProgram->use();
-      shaderProgram->setUniform("Color", m_color);
-      shaderProgram->setUniform("PVM", PVM);
-      shaderProgram->setUniform("VM", VM);
-      shaderProgram->setUniform("NM", NM);
+        m_shaderProgram->use();
+        m_shaderProgram->setUniform("Color", m_color);
+        m_shaderProgram->setUniform("PVM", PVM);
+        m_shaderProgram->setUniform("VM", VM);
+        m_shaderProgram->setUniform("NM", NM);
 
-      glBindVertexArray(vaoHandle);
-      glBindBuffer(GL_ARRAY_BUFFER, vertexBufferHandle);
-
-      glDrawArrays(GL_TRIANGLES, 0, geometry.verticesIndeces().size());
+        glBindVertexArray(m_mesh->vaoHandle());
+        glBindBuffer(GL_ARRAY_BUFFER, m_mesh->vertexBuffer());
+        glDrawArrays(GL_TRIANGLES, 0, m_mesh->geometry().verticesIndeces().size());
     }
 
     for (auto& child : children) {
-      child->render(VM, P);
+        child->render(VM, P);
     }
 }
 
 
 void Model::attachShader(std::shared_ptr<ShaderProgram> shader) {
-  shaderProgram = shader;
+    m_shaderProgram = shader;
+}
+
+
+void Model::setMesh(std::shared_ptr<Mesh> mesh) {
+    m_mesh = mesh;
 }
 
 

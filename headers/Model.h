@@ -5,7 +5,7 @@
 #include <memory>
 #include <functional>
 #include "ShaderProgram.h"
-#include "Geometry.h"
+#include "Mesh.h"
 
 class ModelExeption : public std::runtime_error {
     public:
@@ -16,11 +16,12 @@ class ModelExeption : public std::runtime_error {
 class Model {
     private:
         std::string fileName;
-        Geometry geometry;
         glm::vec3 m_color;
-        std::shared_ptr<ShaderProgram> shaderProgram;
+        std::shared_ptr<Mesh> m_mesh;
+        std::shared_ptr<ShaderProgram> m_shaderProgram;
         std::function<void(Model&, float)> update_cb;
         std::vector<std::unique_ptr<Model>> children;
+        Geometry geometry;
 
         GLuint vertexBufferHandle;
         GLuint normalBufferHandle;
@@ -34,6 +35,8 @@ class Model {
         Model();
         virtual ~Model();
         void load(std::string geometryFileName);
+        void setGeometry(std::shared_ptr<Geometry> geometry);
+        void setMesh(std::shared_ptr<Mesh> mesh);
         void attachShader(std::shared_ptr<ShaderProgram> shader);
         void update(float elapsed_time);
         void render(const glm::mat4 &V, const glm::mat4 &P);

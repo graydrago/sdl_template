@@ -9,7 +9,7 @@ void Geometry::load(std::string fileName) {
     using std::string;
     using std::istringstream;
 
-    this->_fileName = fileName;
+    this->m_fileName = fileName;
 
     auto file_strings = loadTextFile(fileName);
     istringstream file(file_strings);
@@ -23,12 +23,12 @@ void Geometry::load(std::string fileName) {
         if ("v" == type) {
             string num;
             while (getline(line_stream, num, ' ')) {
-                _vertices.push_back(::atof(num.c_str()));
+                m_vertices.push_back(::atof(num.c_str()));
             }
         } else if ("vn" == type) {
             string num;
             while (getline(line_stream, num, ' ')) {
-                _normals.push_back(::atof(num.c_str()));
+                m_normals.push_back(::atof(num.c_str()));
             }
         } else if ("f" == type) {
             string pack;
@@ -42,8 +42,8 @@ void Geometry::load(std::string fileName) {
                 }
                 string normal_index_str = pack.substr(pos, pack.length());
 
-                _verticesIndeces.push_back(::atoi(vertex_index_str.c_str()) - 1);
-                _normalsIndeces.push_back(::atof(normal_index_str.c_str()) - 1);
+                m_verticesIndeces.push_back(::atoi(vertex_index_str.c_str()) - 1);
+                m_normalsIndeces.push_back(::atof(normal_index_str.c_str()) - 1);
             }
         }
     }

@@ -22,6 +22,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "./headers/Mesh.h"
 #include "./headers/Model.h"
 #include "./headers/Normals.h"
 #include "./headers/Control.h"
@@ -115,26 +116,35 @@ int main() {
     
     std::srand(std::chrono::system_clock::now().time_since_epoch().count());
 
-    for (int i = -5; i <= 5; i++) {
-      std::unique_ptr<Model> cube{new Model()};
-      cube->load("./assets/models/monkey.obj");
-      cube->attachShader(shaderProgram);
-      cube->matrix = glm::mat4(1.f);
-      cube->matrix = glm::scale(cube->matrix, glm::vec3(0.2, 0.2, 0.2));
-      cube->matrix = glm::translate(
-          cube->matrix,
-          glm::vec3(i, i, i));
-      //float tc = (i+5.0)/10.0;
-      cube->color(glm::vec3(
-          std::rand() % 255 * (1.f/255.f),
-          std::rand() % 255 * (1.f/255.f),
-          std::rand() % 255 * (1.f/255.f)
-      ));
 
-      cube->setUpdateCb([](Model &m, float elapsed) -> void {
-          m.matrix *= glm::rotate(glm::mat4(1.f), elapsed * 3.14f, glm::vec3(0.f, 1.f, 0.f));
-      });
-      globalModel->addChild(std::move(cube));
+    std::shared_ptr<Mesh> mesh(new Mesh());
+    mesh->load("./assets/models/monkey.obj");
+
+    for (int i = -5; i <= 5; i++) {
+        for (int j = -5; j <= 5; j++) {
+            for (int k = -5; k <= 5; k++) {
+                std::unique_ptr<Model> cube{new Model()};
+                //cube->load("./assets/models/monkey.obj");
+                cube->setMesh(mesh);
+                cube->attachShader(shaderProgram);
+                cube->matrix = glm::mat4(1.f);
+                cube->matrix = glm::scale(cube->matrix, glm::vec3(0.2, 0.2, 0.2));
+                cube->matrix = glm::translate(
+                    cube->matrix,
+                    glm::vec3(i, j, k));
+                //float tc = (i+5.0)/10.0;
+                cube->color(glm::vec3(
+                    std::rand() % 255 * (1.f/255.f),
+                    std::rand() % 255 * (1.f/255.f),
+                    std::rand() % 255 * (1.f/255.f)
+                ));
+
+                cube->setUpdateCb([](Model &m, float elapsed) -> void {
+                    m.matrix *= glm::rotate(glm::mat4(1.f), elapsed * 3.14f, glm::vec3(0.f, 1.f, 0.f));
+                });
+                globalModel->addChild(std::move(cube));
+            }
+        }
     }
 
     globalModel->setUpdateCb([](Model &m, float elapsed) -> void {
@@ -205,7 +215,7 @@ void loop() {
                   break;
           }
       } else if (event.type == SDL_MOUSEWHEEL) {
-          control.zoom += event.wheel.y;
+          control.zoom += event.wheel.y > 0 ? 1 : -1;
           if (control.zoom < control.zoom_min) {
               control.zoom = control.zoom_min;
           } else if (control.zoom > control.zoom_max) {
