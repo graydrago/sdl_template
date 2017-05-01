@@ -204,6 +204,13 @@ void loop() {
                   control.down = false;
                   break;
           }
+      } else if (event.type == SDL_MOUSEWHEEL) {
+          control.zoom += event.wheel.y;
+          if (control.zoom < control.zoom_min) {
+              control.zoom = control.zoom_min;
+          } else if (control.zoom > control.zoom_max) {
+              control.zoom = control.zoom_max;
+          }
       }
   }
 
@@ -222,6 +229,7 @@ void loop() {
       ),
       glm::vec3(0.f, 1.f, 0.f));
   viewMatrix = glm::scale(viewMatrix, glm::vec3(0.3, 0.3, 0.3));
+  viewMatrix = glm::translate(viewMatrix, glm::vec3(0.f, 0.f, control.zoom/10.f));
 
   glm::mat4 projectionMatrix = glm::perspective(45.f, (float)SCREEN_W/(float)SCREEN_H, 0.001f, 4.f);
 
