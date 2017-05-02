@@ -76,8 +76,8 @@ int main() {
     #endif
 
     std::unique_ptr<void, void(*)(void* p)> ctx(
-      SDL_GL_CreateContext(win.get()),
-      [](void* p) { SDL_GL_DeleteContext(p); }
+        SDL_GL_CreateContext(win.get()),
+        [](void* p) { SDL_GL_DeleteContext(p); }
     );
     if (ctx == nullptr) {
         std::cerr << "Unable to create GL Context: " << SDL_GetError() << std::endl;
@@ -123,8 +123,7 @@ int main() {
     for (int i = -5; i <= 5; i++) {
         for (int j = -5; j <= 5; j++) {
             for (int k = -5; k <= 5; k++) {
-                std::unique_ptr<Model> cube{new Model()};
-                //cube->load("./assets/models/monkey.obj");
+                std::shared_ptr<Model> cube{new Model()};
                 cube->setMesh(mesh);
                 cube->attachShader(shaderProgram);
                 cube->matrix = glm::mat4(1.f);
@@ -132,17 +131,15 @@ int main() {
                 cube->matrix = glm::translate(
                     cube->matrix,
                     glm::vec3(i, j, k));
-                //float tc = (i+5.0)/10.0;
                 cube->color(glm::vec3(
                     std::rand() % 255 * (1.f/255.f),
                     std::rand() % 255 * (1.f/255.f),
                     std::rand() % 255 * (1.f/255.f)
                 ));
-
                 cube->setUpdateCb([](Model &m, float elapsed) -> void {
                     m.matrix *= glm::rotate(glm::mat4(1.f), elapsed * 3.14f, glm::vec3(0.f, 1.f, 0.f));
                 });
-                globalModel->addChild(std::move(cube));
+                globalModel->addChild(cube);
             }
         }
     }
