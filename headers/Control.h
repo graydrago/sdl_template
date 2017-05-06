@@ -7,6 +7,8 @@ class Control {
     bool left;
     bool right;
     int zoom;
+    int xrel;
+    int yrel;
     bool play;
 
     const int zoom_min = -15;
@@ -18,6 +20,8 @@ class Control {
       left(false),
       right(false),
       zoom(0),
+      xrel(0),
+      yrel(0),
       play(true)
     {};
 };

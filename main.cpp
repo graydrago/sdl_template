@@ -26,6 +26,7 @@
 #include "./headers/Model.h"
 #include "./headers/Normals.h"
 #include "./headers/Control.h"
+#include "./headers/Camera.h"
 
 const int SCREEN_W {800};
 const int SCREEN_H {600};
@@ -37,6 +38,44 @@ std::unique_ptr<Model> globalModel {nullptr};
 bool play = true;
 Uint32 last_frame_time{};
 Control control{};
+Camera camera{};
+
+void fpsControlCamera(Camera &c, float) {
+    if (control.left) {
+        auto left = glm::normalize(glm::cross(c.up, c.forward));
+        c.position += left * 0.05f;
+    }
+    if (control.right) {
+        auto right = glm::normalize(glm::cross(c.forward, c.up));
+        c.position += right * 0.05f;
+    }
+    if (control.up) {
+        c.position += glm::normalize(c.forward) * 0.05f;
+    }
+    if (control.down) {
+        c.position -= glm::normalize(c.forward) * 0.05f;
+    }
+
+    if (control.xrel != 0) { c.yaw += control.xrel / 2; }
+    if (control.yrel != 0) { c.pitch += control.yrel / 2; }
+};
+
+void freeControlCamera(Camera &c, float) {
+    if (control.left) {
+        auto left = glm::normalize(glm::cross(c.up, c.forward));
+        c.position += left * 0.05f;
+    }
+    if (control.right) {
+        auto right = glm::normalize(glm::cross(c.forward, c.up));
+        c.position += right * 0.05f;
+    }
+    if (control.up) {
+        c.position.y += 0.05;
+    }
+    if (control.down) {
+        c.position.y -= 0.05;
+    }
+};
 
 void loop();
 
@@ -101,6 +140,7 @@ int main() {
     gl_info();
 
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    SDL_SetRelativeMouseMode(SDL_TRUE);
 
     std::shared_ptr<ShaderProgram> shaderProgram(new ShaderProgram());
     #ifdef __EMSCRIPTEN__
@@ -144,20 +184,7 @@ int main() {
         }
     }
 
-    globalModel->setUpdateCb([](Model &m, float elapsed) -> void {
-        if (control.left) {
-            m.matrix *= glm::rotate(glm::mat4(1.f), elapsed * 3.14f, glm::vec3(0.f, 1.f, 0.f));
-        }
-        if (control.right) {
-            m.matrix *= glm::rotate(glm::mat4(1.f), -1 * elapsed * 3.14f, glm::vec3(0.f, 1.f, 0.f));
-        }
-        if (control.up) {
-            m.matrix *= glm::rotate(glm::mat4(1.f), elapsed * 3.14f, glm::vec3(1.f, 0.f, 0.f));
-        }
-        if (control.down) {
-            m.matrix *= glm::rotate(glm::mat4(1.f), -1 * elapsed * 3.14f, glm::vec3(1.f, 0.f, 0.f));
-        }
-    });
+    camera.setUpdateCb(fpsControlCamera);
 
     last_frame_time = SDL_GetTicks();
     #ifdef __EMSCRIPTEN__
@@ -172,6 +199,9 @@ int main() {
 
 void loop() {
   SDL_Event event;
+  control.xrel = 0;
+  control.yrel = 0;
+  
   while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) {
           play = false;
@@ -194,6 +224,12 @@ void loop() {
               case SDLK_ESCAPE:
               case SDLK_q:
                   control.play = false;
+                  break;
+              case SDLK_1:
+                  camera.setUpdateCb(fpsControlCamera);
+                  break;
+              case SDLK_2:
+                  camera.setUpdateCb(freeControlCamera);
                   break;
           }
       } else if (event.type == SDL_KEYUP) {
@@ -218,6 +254,9 @@ void loop() {
           } else if (control.zoom > control.zoom_max) {
               control.zoom = control.zoom_max;
           }
+      } else if (event.type == SDL_MOUSEMOTION) {
+          control.xrel = event.motion.xrel;
+          control.yrel = event.motion.yrel;
       }
   }
 
@@ -227,14 +266,9 @@ void loop() {
   float elapsed_seconds = (float) elapsed_since_last_frame * 0.001;
   last_frame_time = elapsed_since_start_program;
 
-  glm::mat4 viewMatrix = glm::lookAt(
-      glm::vec3(0.f, 0.2f, 0.8f),
-      glm::vec3(
-          globalModel->matrix[3][0],
-          globalModel->matrix[3][1],
-          globalModel->matrix[3][2]
-      ),
-      glm::vec3(0.f, 1.f, 0.f));
+  camera.update(elapsed_seconds);
+
+  glm::mat4 viewMatrix = camera.eye();
   viewMatrix = glm::scale(viewMatrix, glm::vec3(0.3, 0.3, 0.3));
   viewMatrix = glm::translate(viewMatrix, glm::vec3(0.f, 0.f, control.zoom/10.f));
 

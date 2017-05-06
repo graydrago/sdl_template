@@ -7,7 +7,10 @@ function(add_flag flag)
 endfunction()
 
 include_directories("./include/glm")
-set(SOURCE_EXE ./src/utils.cpp ./src/ShaderProgram.cpp ./src/Geometry.cpp ./src/Model.cpp ./src/Mesh.cpp main.cpp )
+set(SOURCE_EXE
+  ./src/utils.cpp ./src/ShaderProgram.cpp ./src/Geometry.cpp
+  ./src/Model.cpp ./src/Camera.cpp ./src/Mesh.cpp
+  main.cpp )
 
 # common flags
 add_flag("-std=c++11")
