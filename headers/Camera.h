@@ -3,11 +3,9 @@
 #include <glm/glm.hpp>
 #include <functional>
 
-#include "./Object.h"
+#include "Object.h"
 
 class Camera : public Object {
-    //using Object::Object;
-
     private:
         glm::vec3 m_up;
         glm::vec3 m_right;

@@ -85,6 +85,9 @@ void freeControlCamera(Object &_c, float) {
         pos.y -= 0.05;
         c.setPosition(pos);
     }
+
+    if (control.xrel != 0) { c.setYaw(c.getYaw() + control.xrel / 2); }
+    if (control.yrel != 0) { c.setPitch(c.getPitch() + control.yrel / 2); }
 };
 
 void loop();
@@ -170,33 +173,33 @@ int main() {
     std::shared_ptr<Mesh> mesh(new Mesh());
     mesh->load("./assets/models/monkey.obj");
 
-    for (int i = -5; i <= 5; i++) {
-        for (int j = -5; j <= 5; j++) {
-            for (int k = -5; k <= 5; k++) {
+    camera->setUpdateCb(fpsControlCamera);
+    root->addChild(camera);
+
+    for (int i = -3; i <= 3; i++) {
+        for (int j = -3; j <= 3; j++) {
+            for (int k = -3; k <= 3; k++) {
                 std::shared_ptr<Model> cube{new Model()};
                 cube->setMesh(mesh);
-                cube->attachShader(shaderProgram);
-                cube->matrix = glm::mat4(1.f);
-                cube->matrix = glm::scale(cube->matrix, glm::vec3(0.2, 0.2, 0.2));
-                cube->matrix = glm::translate(
-                    cube->matrix,
-                    glm::vec3(i, j, k));
-                cube->color(glm::vec3(
+                cube->setShader(shaderProgram);
+                glm::mat4 m(1.f);
+                m = glm::scale(m, glm::vec3(0.2, 0.2, 0.2));
+                m = glm::translate(m, glm::vec3(i, j, k));
+                cube->setColor(glm::vec3(
                     std::rand() % 255 * (1.f/255.f),
                     std::rand() % 255 * (1.f/255.f),
                     std::rand() % 255 * (1.f/255.f)
                 ));
-                cube->setUpdateCb([](Model &m, float elapsed) -> void {
-                    m.matrix *= glm::rotate(glm::mat4(1.f), elapsed * 3.14f, glm::vec3(0.f, 1.f, 0.f));
+                cube->setMatrix(m);
+                cube->setUpdateCb([](Object &m, float elapsed) -> void {
+                    m.setMatrix(
+                        m.getMatrix() * glm::rotate(glm::mat4(1.f), elapsed * 3.14f, glm::vec3(0.f, 1.f, 0.f))
+                    );
                 });
-                globalModel->addChild(cube);
+                root->addChild(cube);
             }
         }
     }
-
-    camera->setUpdateCb(fpsControlCamera);
-
-    root->addChild(camera);
 
     last_frame_time = SDL_GetTicks();
     #ifdef __EMSCRIPTEN__
@@ -284,9 +287,6 @@ void loop() {
   viewMatrix = glm::translate(viewMatrix, glm::vec3(0.f, 0.f, control.zoom/10.f));
 
   glm::mat4 projectionMatrix = glm::perspective(45.f, (float)SCREEN_W/(float)SCREEN_H, 0.001f, 4.f);
-
-  globalModel->update(elapsed_seconds);
-  globalModel->render(viewMatrix, projectionMatrix);
 
   root->update(elapsed_seconds, viewMatrix);
   root->render(projectionMatrix);

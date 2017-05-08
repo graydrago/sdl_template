@@ -20,8 +20,8 @@ class Object {
 
         Object() noexcept;
         virtual ~Object() {};
-        void update(float elapsed_time, const glm::mat4 &V) noexcept;
-        void render(const glm::mat4 &P) noexcept;
+        virtual void update(float elapsed_time, const glm::mat4 &V) noexcept;
+        virtual void render(const glm::mat4 &P) noexcept;
 
         void setUpdateCb(std::function<void(Object&, float)> _cb) noexcept { m_updateCb = _cb; }
         void setRenderCb(std::function<void(Object&, float)> _cb) noexcept { m_renderCb = _cb; }
@@ -35,4 +35,5 @@ class Object {
         glm::vec3 getPosition() const noexcept { return m_position; }
         glm::vec3 getRotation() const noexcept { return m_rotation; }
         glm::mat4 getMatrix() const noexcept { return m_matrix; }
+        glm::mat4 getViewMatrix() const noexcept { return m_viewMatrix; }
 };
