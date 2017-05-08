@@ -3,22 +3,32 @@
 #include <glm/glm.hpp>
 #include <functional>
 
-class Camera {
+#include "./Object.h"
+
+class Camera : public Object {
+    //using Object::Object;
+
     private:
-        std::function<void(Camera&, float)> update_cb;
+        glm::vec3 m_up;
+        glm::vec3 m_right;
+        glm::vec3 m_forward;
+        float m_yaw;
+        float m_pitch;
 
     public:
-        glm::vec3 up;
-        glm::vec3 right;
-        glm::vec3 forward;
-        glm::vec3 position;
-
-        float yaw;
-        float pitch;
-
         Camera();
         virtual ~Camera() {};
         glm::mat4 eye();
-        void setUpdateCb(std::function<void(Camera&, float)> cb);
-        void update(float elapsed_time);
+
+        void setYaw(float v) noexcept { m_yaw = v; };
+        void setPitch(float v) noexcept { m_pitch = v; };
+        void setUp(glm::vec3 v) noexcept { m_up = v; }
+        void setRight(glm::vec3 v) noexcept { m_right = v; }
+        void setForward(glm::vec3 v) noexcept { m_forward = v; }
+
+        float getYaw() const noexcept { return m_yaw; };
+        float getPitch() const noexcept { return m_pitch; };
+        glm::vec3 getUp() const noexcept { return m_up; }
+        glm::vec3 getRight() const noexcept { return m_right; }
+        glm::vec3 getForward() const noexcept { return m_forward; }
 };

@@ -27,6 +27,7 @@
 #include "./headers/Normals.h"
 #include "./headers/Control.h"
 #include "./headers/Camera.h"
+#include "./headers/Object.h"
 
 const int SCREEN_W {800};
 const int SCREEN_H {600};
@@ -35,45 +36,54 @@ std::unique_ptr<SDL_Window, void(*)(SDL_Window*)> win {
   nullptr, [](SDL_Window* p) { SDL_DestroyWindow(p); SDL_Quit(); }
 };
 std::unique_ptr<Model> globalModel {nullptr};
+std::unique_ptr<Object> root {new Object()};
 bool play = true;
 Uint32 last_frame_time{};
 Control control{};
-Camera camera{};
+std::shared_ptr<Camera> camera(new Camera());
 
-void fpsControlCamera(Camera &c, float) {
+void fpsControlCamera(Object &_c, float) {
+    Camera &c = dynamic_cast<Camera &>(_c);
+
     if (control.left) {
-        auto left = glm::normalize(glm::cross(c.up, c.forward));
-        c.position += left * 0.05f;
+        auto left = glm::normalize(glm::cross(c.getUp(), c.getForward()));
+        c.setPosition(c.getPosition() + left * 0.05f);
     }
     if (control.right) {
-        auto right = glm::normalize(glm::cross(c.forward, c.up));
-        c.position += right * 0.05f;
+        auto right = glm::normalize(glm::cross(c.getForward(), c.getUp()));
+        c.setPosition(c.getPosition() + right * 0.05f);
     }
     if (control.up) {
-        c.position += glm::normalize(c.forward) * 0.05f;
+        c.setPosition(c.getPosition() + glm::normalize(c.getForward()) * 0.05f);
     }
     if (control.down) {
-        c.position -= glm::normalize(c.forward) * 0.05f;
+        c.setPosition(c.getPosition() - glm::normalize(c.getForward()) * 0.05f);
     }
 
-    if (control.xrel != 0) { c.yaw += control.xrel / 2; }
-    if (control.yrel != 0) { c.pitch += control.yrel / 2; }
+    if (control.xrel != 0) { c.setYaw(c.getYaw() + control.xrel / 2); }
+    if (control.yrel != 0) { c.setPitch(c.getPitch() + control.yrel / 2); }
 };
 
-void freeControlCamera(Camera &c, float) {
+void freeControlCamera(Object &_c, float) {
+    Camera &c = dynamic_cast<Camera &>(_c);
+
     if (control.left) {
-        auto left = glm::normalize(glm::cross(c.up, c.forward));
-        c.position += left * 0.05f;
+        auto left = glm::normalize(glm::cross(c.getUp(), c.getForward()));
+        c.setPosition(c.getPosition() + left * 0.05f);
     }
     if (control.right) {
-        auto right = glm::normalize(glm::cross(c.forward, c.up));
-        c.position += right * 0.05f;
+        auto right = glm::normalize(glm::cross(c.getForward(), c.getUp()));
+        c.setPosition(c.getPosition() + right * 0.05f);
     }
     if (control.up) {
-        c.position.y += 0.05;
+        auto pos = c.getPosition();
+        pos.y += 0.05;
+        c.setPosition(pos);
     }
     if (control.down) {
-        c.position.y -= 0.05;
+        auto pos = c.getPosition();
+        pos.y -= 0.05;
+        c.setPosition(pos);
     }
 };
 
@@ -184,7 +194,9 @@ int main() {
         }
     }
 
-    camera.setUpdateCb(fpsControlCamera);
+    camera->setUpdateCb(fpsControlCamera);
+
+    root->addChild(camera);
 
     last_frame_time = SDL_GetTicks();
     #ifdef __EMSCRIPTEN__
@@ -226,10 +238,10 @@ void loop() {
                   control.play = false;
                   break;
               case SDLK_1:
-                  camera.setUpdateCb(fpsControlCamera);
+                  camera->setUpdateCb(fpsControlCamera);
                   break;
               case SDLK_2:
-                  camera.setUpdateCb(freeControlCamera);
+                  camera->setUpdateCb(freeControlCamera);
                   break;
           }
       } else if (event.type == SDL_KEYUP) {
@@ -266,9 +278,8 @@ void loop() {
   float elapsed_seconds = (float) elapsed_since_last_frame * 0.001;
   last_frame_time = elapsed_since_start_program;
 
-  camera.update(elapsed_seconds);
 
-  glm::mat4 viewMatrix = camera.eye();
+  glm::mat4 viewMatrix = camera->eye();
   viewMatrix = glm::scale(viewMatrix, glm::vec3(0.3, 0.3, 0.3));
   viewMatrix = glm::translate(viewMatrix, glm::vec3(0.f, 0.f, control.zoom/10.f));
 
@@ -276,6 +287,9 @@ void loop() {
 
   globalModel->update(elapsed_seconds);
   globalModel->render(viewMatrix, projectionMatrix);
+
+  root->update(elapsed_seconds, viewMatrix);
+  root->render(projectionMatrix);
 
   SDL_GL_SwapWindow(win.get());
 }
