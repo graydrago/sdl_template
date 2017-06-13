@@ -33,17 +33,46 @@ const int SCREEN_W {800};
 const int SCREEN_H {600};
 
 std::unique_ptr<SDL_Window, void(*)(SDL_Window*)> win {
-  nullptr, [](SDL_Window* p) { SDL_DestroyWindow(p); SDL_Quit(); }
+    nullptr, [](SDL_Window* p) { SDL_DestroyWindow(p); SDL_Quit(); }
 };
 std::unique_ptr<Model> globalModel {nullptr};
-std::unique_ptr<Object> root {new Object()};
+//std::unique_ptr<Object> root {new Object()};
+std::vector<std::shared_ptr<Object>> scene_list{};
 bool play = true;
 Uint32 last_frame_time{};
 Control control{};
 std::shared_ptr<Camera> camera(new Camera());
+glm::vec3 camera_old_pos{0.f};
 
 void fpsControlCamera(Object &_c, float) {
+    float speed = 0.02f;
     Camera &c = dynamic_cast<Camera &>(_c);
+    camera_old_pos = c.getPosition();
+
+    if (control.left) {
+        auto left = glm::normalize(glm::cross(c.getUp(), c.getForward()));
+        c.setPosition(c.getPosition() + left * speed);
+    }
+    if (control.right) {
+        auto right = glm::normalize(glm::cross(c.getForward(), c.getUp()));
+        c.setPosition(c.getPosition() + right * speed);
+    }
+    if (control.up) {
+        auto step = c.getPosition() + glm::normalize(c.getForward()) * speed;
+        c.setPosition({step.x, c.getPosition().y, step.z});
+    }
+    if (control.down) {
+        auto step = c.getPosition() - glm::normalize(c.getForward()) * speed;
+        c.setPosition({step.x, c.getPosition().y, step.z});
+    }
+
+    if (control.xrel != 0) { c.setYaw(c.getYaw() + control.xrel / 2); }
+    if (control.yrel != 0) { c.setPitch(c.getPitch() + control.yrel / 2); }
+};
+
+void freeControlCamera(Object &_c, float) {
+    Camera &c = dynamic_cast<Camera &>(_c);
+    camera_old_pos = c.getPosition();
 
     if (control.left) {
         auto left = glm::normalize(glm::cross(c.getUp(), c.getForward()));
@@ -58,32 +87,6 @@ void fpsControlCamera(Object &_c, float) {
     }
     if (control.down) {
         c.setPosition(c.getPosition() - glm::normalize(c.getForward()) * 0.05f);
-    }
-
-    if (control.xrel != 0) { c.setYaw(c.getYaw() + control.xrel / 2); }
-    if (control.yrel != 0) { c.setPitch(c.getPitch() + control.yrel / 2); }
-};
-
-void freeControlCamera(Object &_c, float) {
-    Camera &c = dynamic_cast<Camera &>(_c);
-
-    if (control.left) {
-        auto left = glm::normalize(glm::cross(c.getUp(), c.getForward()));
-        c.setPosition(c.getPosition() + left * 0.05f);
-    }
-    if (control.right) {
-        auto right = glm::normalize(glm::cross(c.getForward(), c.getUp()));
-        c.setPosition(c.getPosition() + right * 0.05f);
-    }
-    if (control.up) {
-        auto pos = c.getPosition();
-        pos.y += 0.05;
-        c.setPosition(pos);
-    }
-    if (control.down) {
-        auto pos = c.getPosition();
-        pos.y -= 0.05;
-        c.setPosition(pos);
     }
 
     if (control.xrel != 0) { c.setYaw(c.getYaw() + control.xrel / 2); }
@@ -174,32 +177,75 @@ int main() {
     mesh->load("./assets/models/monkey.obj");
 
     camera->setUpdateCb(fpsControlCamera);
-    root->addChild(camera);
+    scene_list.push_back(camera);
+    //root->addChild(camera);
 
-    for (int i = -3; i <= 3; i++) {
-        for (int j = -3; j <= 3; j++) {
-            for (int k = -3; k <= 3; k++) {
-                std::shared_ptr<Model> cube{new Model()};
-                cube->setMesh(mesh);
-                cube->setShader(shaderProgram);
-                glm::mat4 m(1.f);
-                m = glm::scale(m, glm::vec3(0.2, 0.2, 0.2));
-                m = glm::translate(m, glm::vec3(i, j, k));
-                cube->setColor(glm::vec3(
-                    std::rand() % 255 * (1.f/255.f),
-                    std::rand() % 255 * (1.f/255.f),
-                    std::rand() % 255 * (1.f/255.f)
-                ));
-                cube->setMatrix(m);
-                cube->setUpdateCb([](Object &m, float elapsed) -> void {
-                    m.setMatrix(
-                        m.getMatrix() * glm::rotate(glm::mat4(1.f), elapsed * 3.14f, glm::vec3(0.f, 1.f, 0.f))
-                    );
-                });
-                root->addChild(cube);
-            }
-        }
+    {
+      std::shared_ptr<Model> cube{new Model()};
+      cube->setMesh(mesh);
+      cube->setShader(shaderProgram);
+      cube->setPosition({0.f, 0.f, -3.f});
+      cube->setUpdateCb([](Object &m, float elapsed) {
+          //auto pos = camera->getPosition() - m.getPosition();
+          //auto angle = glm::atan(pos.z, pos.x) + glm::radians(90.f);
+          //m.setRotation({0.f, angle, 0.f});
+          //m.setRotation({0.f, 3.f, 0.f});
+          //glm::mat4 new_m(1.f);
+          //new_m = glm::rotate(new_m,
+              //glm::atan(
+                //-camera->getPosition().z,
+                //camera->getPosition().x
+              //) + glm::radians(90.f),
+              //glm::vec3(0.f, 1.f, 0.f));
+          //m.setMatrix(new_m);
+      });
+      scene_list.push_back(cube);
     }
+
+    {
+      std::shared_ptr<Model> cube{new Model()};
+      cube->setMesh(mesh);
+      cube->setShader(shaderProgram);
+      cube->setPosition({0.f, 1.f, 0.f});
+      scene_list.push_back(cube);
+    }
+
+    //for (int i = -3; i <= 3; i++) {
+        //for (int j = -3; j <= 3; j++) {
+            //for (int k = -3; k <= 3; k++) {
+                //std::shared_ptr<Model> cube{new Model()};
+                //cube->setMesh(mesh);
+                //cube->setShader(shaderProgram);
+                //glm::mat4 m(1.f);
+                //m = glm::scale(m, glm::vec3(0.2, 0.2, 0.2));
+                //m = glm::translate(m, glm::vec3(i, j, k));
+                //cube->setColor(glm::vec3(
+                    //std::rand() % 255 * (1.f/255.f),
+                    //std::rand() % 255 * (1.f/255.f),
+                    //std::rand() % 255 * (1.f/255.f)
+                //));
+                //cube->setMatrix(m);
+                //cube->setUpdateCb([i, j, k](Object &m, float elapsed) -> void {
+                    //if (m.getCollider()->test(camera->getPosition())) {
+                        //camera->setPosition(camera_old_pos);
+                    //}
+                    //glm::mat4 new_matrix(1.f);
+                    //auto eye_camera =  camera->getViewMatrix() * glm::vec4(camera->getPosition(), 1.f);
+                    ////auto eye_m =  m.getViewMatrix() * glm::vec4(m.getPosition(), 1.f);
+                    //auto eye_m =  m.getViewMatrix() * glm::vec4(i, j, k, 1.f);
+                    //auto a = eye_camera - eye_m;
+                    //new_matrix = glm::rotate(new_matrix, glm::atan(a.z, a.x), glm::vec3(0.f, 1.f, 0.f));
+                    ////new_matrix = glm::scale(new_matrix, glm::vec3(0.2, 0.2, 0.2));
+                    ////new_matrix = glm::translate(new_matrix, glm::vec3(i, j, k));
+                    //m.setMatrix(new_matrix);
+                //});
+                //cube->setCollider(std::shared_ptr<Collider>(new Collider()));
+                //cube->getCollider()->setMin(glm::vec3(-0.3, -0.3, -0.3));
+                //cube->getCollider()->setMax(glm::vec3(+0.3, +0.3, +0.3));
+                //root->addChild(cube);
+            //}
+        //}
+    //}
 
     last_frame_time = SDL_GetTicks();
     #ifdef __EMSCRIPTEN__
@@ -288,8 +334,13 @@ void loop() {
 
   glm::mat4 projectionMatrix = glm::perspective(45.f, (float)SCREEN_W/(float)SCREEN_H, 0.001f, 4.f);
 
-  root->update(elapsed_seconds, viewMatrix);
-  root->render(projectionMatrix);
+  for (auto item : scene_list) {
+      item->update(elapsed_seconds);
+      item->render(projectionMatrix, viewMatrix);
+  }
+
+  //root->update(elapsed_seconds);
+  //root->render(projectionMatrix);
 
   SDL_GL_SwapWindow(win.get());
 }

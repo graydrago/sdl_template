@@ -14,15 +14,15 @@ Model::Model() :
 {}
 
 
-void Model::render(const glm::mat4 &P) noexcept {
+void Model::render(const glm::mat4 &P, const glm::mat4 &V) const noexcept {
     if (m_mesh && m_shaderProgram) {
-        auto PVM = P * getViewMatrix();
-        auto NM = glm::mat3(glm::transpose(glm::inverse(getViewMatrix())));
+        auto PVM = P * V * getWorldTransform();
+        auto NM = glm::mat3(glm::transpose(glm::inverse(getWorldTransform())));
 
         m_shaderProgram->use();
         m_shaderProgram->setUniform("Color", m_color);
         m_shaderProgram->setUniform("PVM", PVM);
-        m_shaderProgram->setUniform("VM", getViewMatrix());
+        m_shaderProgram->setUniform("VM", getWorldTransform());
         m_shaderProgram->setUniform("NM", NM);
 
         glBindVertexArray(m_mesh->vaoHandle());
@@ -30,8 +30,8 @@ void Model::render(const glm::mat4 &P) noexcept {
         glDrawArrays(GL_TRIANGLES, 0, m_mesh->geometry().verticesIndeces().size());
     }
 
-    for (auto& child : children) {
-        child->render(P);
-    }
+    //for (auto& child : children) {
+        //child->render(P);
+    //}
 }
 
