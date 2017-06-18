@@ -1,5 +1,6 @@
 /* NOT FINISHED */
 #define GLEW_STATIC
+#define GLM_ENABLE_EXPERIMENTAL
 
 #include <GL/glew.h>
 
@@ -20,6 +21,8 @@
 #include <memory>
 #include <chrono>
 #include <glm/glm.hpp>
+#include <glm/ext.hpp>
+#include <glm/gtx/polar_coordinates.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "./headers/Mesh.h"
@@ -29,14 +32,12 @@
 #include "./headers/Camera.h"
 #include "./headers/Object.h"
 
-const int SCREEN_W {800};
-const int SCREEN_H {600};
+const int SCREEN_W {1024};
+const int SCREEN_H {768};
 
 std::unique_ptr<SDL_Window, void(*)(SDL_Window*)> win {
     nullptr, [](SDL_Window* p) { SDL_DestroyWindow(p); SDL_Quit(); }
 };
-std::unique_ptr<Model> globalModel {nullptr};
-//std::unique_ptr<Object> root {new Object()};
 std::vector<std::shared_ptr<Object>> scene_list{};
 bool play = true;
 Uint32 last_frame_time{};
@@ -167,8 +168,6 @@ int main() {
     shaderProgram->compile("./assets/onePointLight.vert", GL_VERTEX_SHADER);
     #endif
     shaderProgram->link();
-
-    globalModel.reset(new Model);
     
     std::srand(std::chrono::system_clock::now().time_since_epoch().count());
 
@@ -178,74 +177,29 @@ int main() {
 
     camera->setUpdateCb(fpsControlCamera);
     scene_list.push_back(camera);
-    //root->addChild(camera);
 
-    {
-      std::shared_ptr<Model> cube{new Model()};
-      cube->setMesh(mesh);
-      cube->setShader(shaderProgram);
-      cube->setPosition({0.f, 0.f, -3.f});
-      cube->setUpdateCb([](Object &m, float elapsed) {
-          //auto pos = camera->getPosition() - m.getPosition();
-          //auto angle = glm::atan(pos.z, pos.x) + glm::radians(90.f);
-          //m.setRotation({0.f, angle, 0.f});
-          //m.setRotation({0.f, 3.f, 0.f});
-          //glm::mat4 new_m(1.f);
-          //new_m = glm::rotate(new_m,
-              //glm::atan(
-                //-camera->getPosition().z,
-                //camera->getPosition().x
-              //) + glm::radians(90.f),
-              //glm::vec3(0.f, 1.f, 0.f));
-          //m.setMatrix(new_m);
-      });
-      scene_list.push_back(cube);
+    for (int i = -3; i <= 3; i++) {
+        for (int j = -3; j <= 3; j++) {
+            for (int k = -3; k <= 3; k++) {
+                std::shared_ptr<Model> cube{new Model()};
+                cube->setMesh(mesh);
+                cube->setShader(shaderProgram);
+                cube->setColor(glm::vec3(
+                    std::rand() % 255 * (1.f/255.f),
+                    std::rand() % 255 * (1.f/255.f),
+                    std::rand() % 255 * (1.f/255.f)
+                ));
+                cube->setPosition({i/5.f, j/5.f, k/5.f});
+                cube->setScale({0.1f, 0.1f, 0.1f});
+                cube->setUpdateCb([](Object &m, float) -> void {
+                    auto delta = glm::normalize(camera->getPosition() - m.getPosition());
+                    auto polar = glm::polar(delta);
+                    m.setRotation({0, polar.y, 0});
+                });
+                scene_list.push_back(cube);
+            }
+        }
     }
-
-    {
-      std::shared_ptr<Model> cube{new Model()};
-      cube->setMesh(mesh);
-      cube->setShader(shaderProgram);
-      cube->setPosition({0.f, 1.f, 0.f});
-      scene_list.push_back(cube);
-    }
-
-    //for (int i = -3; i <= 3; i++) {
-        //for (int j = -3; j <= 3; j++) {
-            //for (int k = -3; k <= 3; k++) {
-                //std::shared_ptr<Model> cube{new Model()};
-                //cube->setMesh(mesh);
-                //cube->setShader(shaderProgram);
-                //glm::mat4 m(1.f);
-                //m = glm::scale(m, glm::vec3(0.2, 0.2, 0.2));
-                //m = glm::translate(m, glm::vec3(i, j, k));
-                //cube->setColor(glm::vec3(
-                    //std::rand() % 255 * (1.f/255.f),
-                    //std::rand() % 255 * (1.f/255.f),
-                    //std::rand() % 255 * (1.f/255.f)
-                //));
-                //cube->setMatrix(m);
-                //cube->setUpdateCb([i, j, k](Object &m, float elapsed) -> void {
-                    //if (m.getCollider()->test(camera->getPosition())) {
-                        //camera->setPosition(camera_old_pos);
-                    //}
-                    //glm::mat4 new_matrix(1.f);
-                    //auto eye_camera =  camera->getViewMatrix() * glm::vec4(camera->getPosition(), 1.f);
-                    ////auto eye_m =  m.getViewMatrix() * glm::vec4(m.getPosition(), 1.f);
-                    //auto eye_m =  m.getViewMatrix() * glm::vec4(i, j, k, 1.f);
-                    //auto a = eye_camera - eye_m;
-                    //new_matrix = glm::rotate(new_matrix, glm::atan(a.z, a.x), glm::vec3(0.f, 1.f, 0.f));
-                    ////new_matrix = glm::scale(new_matrix, glm::vec3(0.2, 0.2, 0.2));
-                    ////new_matrix = glm::translate(new_matrix, glm::vec3(i, j, k));
-                    //m.setMatrix(new_matrix);
-                //});
-                //cube->setCollider(std::shared_ptr<Collider>(new Collider()));
-                //cube->getCollider()->setMin(glm::vec3(-0.3, -0.3, -0.3));
-                //cube->getCollider()->setMax(glm::vec3(+0.3, +0.3, +0.3));
-                //root->addChild(cube);
-            //}
-        //}
-    //}
 
     last_frame_time = SDL_GetTicks();
     #ifdef __EMSCRIPTEN__
@@ -329,18 +283,15 @@ void loop() {
 
 
   glm::mat4 viewMatrix = camera->eye();
-  viewMatrix = glm::scale(viewMatrix, glm::vec3(0.3, 0.3, 0.3));
-  viewMatrix = glm::translate(viewMatrix, glm::vec3(0.f, 0.f, control.zoom/10.f));
 
-  glm::mat4 projectionMatrix = glm::perspective(45.f, (float)SCREEN_W/(float)SCREEN_H, 0.001f, 4.f);
+  glm::mat4 projectionMatrix = glm::perspective(
+      glm::degrees(((float)SCREEN_H/(float)SCREEN_W) * 1.2f),
+      (float)SCREEN_W/(float)SCREEN_H, 0.001f, 10.f);
 
   for (auto item : scene_list) {
       item->update(elapsed_seconds);
       item->render(projectionMatrix, viewMatrix);
   }
-
-  //root->update(elapsed_seconds);
-  //root->render(projectionMatrix);
 
   SDL_GL_SwapWindow(win.get());
 }

@@ -24,8 +24,8 @@ glm::mat4 Camera::eye() {
 
     m_forward.x = glm::cos(r_pitch) * glm::cos(r_yaw);
     m_forward.y = glm::sin(-r_pitch);
-    m_forward.z =  glm::cos(r_pitch) * glm::sin(r_yaw);
+    m_forward.z = glm::cos(r_pitch) * glm::sin(r_yaw);
 
-    return glm::lookAt(getPosition(), getPosition() + m_forward, m_up);
+    return glm::lookAt(getPosition(), getPosition() + glm::normalize(m_forward), m_up);
 }
 
