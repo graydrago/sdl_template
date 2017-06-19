@@ -8,13 +8,16 @@
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <emscripten.h>
+#include <SDL2/SDL.h>
+#include <SDL/SDL_mixer.h>
 #else
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
 #include <GL/gl.h>
 #include <GL/glext.h>
 #endif
 
 #include <iostream>
-#include <SDL2/SDL.h>
 #include <fstream>
 #include <streambuf>
 #include <vector>
@@ -59,12 +62,14 @@ void fpsControlCamera(Object &_c, float) {
         c.setPosition(c.getPosition() + right * speed);
     }
     if (control.up) {
-        auto step = c.getPosition() + glm::normalize(c.getForward()) * speed;
-        c.setPosition({step.x, c.getPosition().y, step.z});
+        auto direction = glm::vec3({c.getForward().x, c.getPosition().y, c.getForward().z});
+        auto step = c.getPosition() + glm::normalize(direction) * speed;
+        c.setPosition(step);
     }
     if (control.down) {
-        auto step = c.getPosition() - glm::normalize(c.getForward()) * speed;
-        c.setPosition({step.x, c.getPosition().y, step.z});
+        auto direction = glm::vec3({c.getForward().x, c.getPosition().y, c.getForward().z});
+        auto step = c.getPosition() - glm::normalize(direction) * speed;
+        c.setPosition(step);
     }
 
     if (control.xrel != 0) { c.setYaw(c.getYaw() + control.xrel / 2); }
@@ -96,11 +101,49 @@ void freeControlCamera(Object &_c, float) {
 
 void loop();
 
+class PlayMusic {
+    private:
+        Mix_Chunk *music;
+        std::string m_file_path;
+
+    public:
+        PlayMusic() : music(nullptr) {};
+        virtual ~PlayMusic() { Mix_FreeChunk(music); }
+
+        void load(std::string file_path) {
+            m_file_path = file_path;
+            music = Mix_LoadWAV(m_file_path.c_str());
+            if (!music) {
+                std::cout << ("Can't load a music: " + m_file_path) << std::endl;
+            }
+        };
+        void play() {
+          if (music) {
+              if (Mix_PlayChannel(-1, music, 0) < 0) {
+                  std::cout << "SDL_Mixer Error:" << Mix_GetError() << std::endl;
+              }
+          } else {
+              std::cout << ("Can't play a music") << std::endl;
+          }
+        };
+        //void stop() {};
+};
+
 int main() {
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
         std::cerr << "Unable to init SDL: " << SDL_GetError() << std::endl;
         exit(EXIT_FAILURE);
     }
+
+    if (Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 1, 4096))
+    {
+      std::cerr << "SDL_Mixer Error: " << Mix_GetError() << std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+    PlayMusic music;
+    music.load("./assets/music/The Endless Cycle.ogg");
+    music.play();
 
     #ifdef __EMSCRIPTEN__
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
@@ -178,9 +221,9 @@ int main() {
     camera->setUpdateCb(fpsControlCamera);
     scene_list.push_back(camera);
 
-    for (int i = -3; i <= 3; i++) {
-        for (int j = -3; j <= 3; j++) {
-            for (int k = -3; k <= 3; k++) {
+    for (int i = -5; i <= 5; i++) {
+        for (int j = -5; j <= 5; j++) {
+            for (int k = -5; k <= 5; k++) {
                 std::shared_ptr<Model> cube{new Model()};
                 cube->setMesh(mesh);
                 cube->setShader(shaderProgram);
@@ -189,7 +232,7 @@ int main() {
                     std::rand() % 255 * (1.f/255.f),
                     std::rand() % 255 * (1.f/255.f)
                 ));
-                cube->setPosition({i/5.f, j/5.f, k/5.f});
+                cube->setPosition({i, j, k});
                 cube->setScale({0.1f, 0.1f, 0.1f});
                 cube->setUpdateCb([](Object &m, float) -> void {
                     auto delta = glm::normalize(camera->getPosition() - m.getPosition());
@@ -209,6 +252,8 @@ int main() {
         loop();
     }
     #endif
+
+    Mix_CloseAudio();
 }
 
 

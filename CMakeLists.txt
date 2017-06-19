@@ -26,6 +26,8 @@ if(EMSCRIPTEN)
   #add_flag("-s SIMD=1")
   add_flag("-s WASM=1")
   add_flag("-s ALLOW_MEMORY_GROWTH=1")
+  add_flag("-s USE_OGG=1")
+  add_flag("-s USE_VORBIS=1")
   add_flag("--emrun")
   add_flag("--preload-file ../assets@/assets/")
   add_flag("-O2")
@@ -47,5 +49,5 @@ endif()
 
 
 add_executable( ${PROJECT_NAME} ${SOURCE_EXE} )
-target_link_libraries( ${PROJECT_NAME} SDL2 GL GLEW )
+target_link_libraries( ${PROJECT_NAME} SDL2 SDL2_mixer GL GLEW )
 

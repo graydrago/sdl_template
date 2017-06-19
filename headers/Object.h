@@ -5,6 +5,9 @@
 #include <functional>
 #include <glm/glm.hpp>
 
+#include <glm/ext.hpp>
+#include <iostream>
+
 #include "Collider.h"
 
 class Object {
