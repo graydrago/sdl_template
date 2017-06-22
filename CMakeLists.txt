@@ -10,7 +10,8 @@ include_directories("./include/glm")
 set(SOURCE_EXE
   ./src/utils.cpp ./src/ShaderProgram.cpp ./src/Geometry.cpp
   ./src/Model.cpp ./src/Camera.cpp ./src/Mesh.cpp
-  ./src/Object.cpp main.cpp )
+  ./src/Object.cpp ./src/Game.cpp ./src/PlayMusic.cpp
+  main.cpp )
 
 # common flags
 add_flag("-std=c++11")

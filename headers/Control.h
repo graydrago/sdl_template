@@ -15,13 +15,13 @@ class Control {
     const int zoom_max = 15;
 
     Control() :
-      up(false),
-      down(false),
-      left(false),
-      right(false),
-      zoom(0),
-      xrel(0),
-      yrel(0),
-      play(true)
+        up(false),
+        down(false),
+        left(false),
+        right(false),
+        zoom(0),
+        xrel(0),
+        yrel(0),
+        play(true)
     {};
 };

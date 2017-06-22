@@ -14,7 +14,6 @@ class NormalsExeption : public std::runtime_error {
 };
 
 class Normals {
-    //private:
     public:
         GLuint indexBufferHandle;
         GLuint vertexBufferHundle;
