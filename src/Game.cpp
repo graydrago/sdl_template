@@ -263,16 +263,22 @@ void Game::loop() noexcept {
 
             case SDL_MOUSEBUTTONDOWN:
             {
-                SDL_SetRelativeMouseMode(SDL_TRUE);
+                if (!SDL_GetRelativeMouseMode()) { SDL_SetRelativeMouseMode(SDL_TRUE); }
+
+                auto ray_start =  glm::unProject(
+                        glm::vec3(m_screen_width/2 + 100, m_screen_height/2, 0.0),
+                        m_view_matrix, m_projection_matrix,
+                        glm::vec4(0.f, 0.f, m_screen_width, m_screen_height));
+
+                auto ray_end =  glm::unProject(
+                        glm::vec3(m_screen_width/2, m_screen_height/2, 1.0),
+                        m_view_matrix, m_projection_matrix,
+                        glm::vec4(0.f, 0.f, m_screen_width, m_screen_height));
 
                 auto mesh = std::make_shared<Mesh>();
-                auto cam_pos = camera->getPosition();
-                auto matr = glm::inverse(camera->getWorldTransform());
-                auto cam_forw = camera->getForward() * 5;
-                cam_pos = glm::vec3(glm::vec4(cam_pos, 0.1f) * matr) + (cam_forw*-0.3f);
                 std::vector<float> v{
-                    cam_pos.x, cam_pos.y, cam_pos.y,
-                    cam_forw.x, cam_forw.y, cam_forw.z
+                    ray_start.x, ray_start.y, ray_start.z,
+                    ray_end.x, ray_end.y, ray_end.z
                 };
                 mesh->makeVertexBuffer(v);
                 mesh->makeVAO();
