@@ -22,6 +22,8 @@ class Geometry {
         virtual ~Geometry() {};
         void load(std::string fileName);
 
+        void vertices(std::vector<float> v) { m_vertices = v; }
+
         std::vector<float>& vertices() { return m_vertices; }
         std::vector<float>& normals() { return m_normals; }
         std::vector<int>& verticesIndeces() { return m_verticesIndeces; }

@@ -31,11 +31,13 @@
 #include "../headers/Mesh.h"
 #include "../headers/Camera.h"
 #include "../headers/Model.h"
+#include "../headers/Line.h"
 #include "../headers/ShaderProgram.h"
 #include "../headers/PlayMusic.h"
 
 
 Game::Game() {
+    m_fullscreen_mode = false;
     m_screen_width = 1024;
     m_screen_height = 768;
     camera = std::make_shared<Camera>();
@@ -80,7 +82,7 @@ void Game::init() {
         "Template",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         m_screen_width, m_screen_height,
-        SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
+        SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     if (window == nullptr) {
         auto err_text = std::string("Unable to create window: ") + SDL_GetError();
         throw new std::runtime_error(err_text);
@@ -112,28 +114,46 @@ void Game::init() {
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
     SDL_SetRelativeMouseMode(SDL_TRUE);
+    SDL_GetWindowDisplayMode(window, &m_window_display_mode);
 }
 
 
 void Game::run() {
-    std::shared_ptr<ShaderProgram> shaderProgram(new ShaderProgram());
-    #ifdef __EMSCRIPTEN__
-    shaderProgram->compile("./assets/es2/es_onePointLight.frag", GL_FRAGMENT_SHADER);
-    shaderProgram->compile("./assets/es2/es_onePointLight.vert", GL_VERTEX_SHADER);
-    #else
-    shaderProgram->compile("./assets/onePointLight.frag", GL_FRAGMENT_SHADER);
-    shaderProgram->compile("./assets/onePointLight.vert", GL_VERTEX_SHADER);
-    #endif
-    shaderProgram->link();
-    
+    {
+        auto shader = std::make_shared<ShaderProgram>();
+        #ifdef __EMSCRIPTEN__
+        shader->compile("./assets/es2/es_onePointLight.frag", GL_FRAGMENT_SHADER);
+        shader->compile("./assets/es2/es_onePointLight.vert", GL_VERTEX_SHADER);
+        #else
+        shader->compile("./assets/onePointLight.frag", GL_FRAGMENT_SHADER);
+        shader->compile("./assets/onePointLight.vert", GL_VERTEX_SHADER);
+        #endif
+        shader->link();
+        res("one_point_light", shader);
+    }
+    {
+        auto shader = std::make_shared<ShaderProgram>();
+        #ifdef __EMSCRIPTEN__
+        shader->compile("./assets/es2/es_basic.frag", GL_FRAGMENT_SHADER);
+        shader->compile("./assets/es2/es_basic.vert", GL_VERTEX_SHADER);
+        #else
+        shader->compile("./assets/basic.frag", GL_FRAGMENT_SHADER);
+        shader->compile("./assets/basic.vert", GL_VERTEX_SHADER);
+        #endif
+        shader->link();
+        res("basic", shader);
+    }
+    {
+        std::shared_ptr<Mesh> mesh(new Mesh());
+        mesh->load("./assets/models/monkey.obj");
+        res("monkey", mesh);
+    }
+
     PlayMusic music;
     music.load("./assets/music/The Endless Cycle.ogg");
     music.play();
 
     std::srand(std::chrono::system_clock::now().time_since_epoch().count());
-
-    std::shared_ptr<Mesh> mesh(new Mesh());
-    mesh->load("./assets/models/monkey.obj");
 
     camera->setUpdateCb(std::bind(&Game::fpsControlCamera, this, std::placeholders::_1, std::placeholders::_2));
     scene_list.push_back(camera);
@@ -142,8 +162,8 @@ void Game::run() {
         for (int j = -5; j <= 5; j++) {
             for (int k = -5; k <= 5; k++) {
                 std::shared_ptr<Model> cube{new Model()};
-                cube->setMesh(mesh);
-                cube->setShader(shaderProgram);
+                cube->setMesh(getMesh("monkey"));
+                cube->setShader(getShader("one_point_light"));
                 cube->setColor(glm::vec3(
                     std::rand() % 255 * (1.f/255.f),
                     std::rand() % 255 * (1.f/255.f),
@@ -178,60 +198,108 @@ void Game::loop() noexcept {
     Uint32 last_frame_time{};
   
     while (SDL_PollEvent(&event)) {
-        if (event.type == SDL_QUIT) {
-            control.play = false;
-        }
+        switch (event.type) {
+            case SDL_QUIT:
+            {
+                control.play = false;
+                break;
+            }
 
-        if (event.type == SDL_KEYDOWN) {
-            switch (event.key.keysym.sym) {
-                case SDLK_a:
-                    control.left = true;
-                    break;
-                case SDLK_d:
-                    control.right = true;
-                    break;
-                case SDLK_w:
-                    control.up = true;
-                    break;
-                case SDLK_s:
-                    control.down = true;
-                    break;
-                case SDLK_ESCAPE:
-                case SDLK_q:
-                    control.play = false;
-                    break;
-                case SDLK_1:
-                    camera->setUpdateCb(std::bind(&Game::fpsControlCamera, this, std::placeholders::_1, std::placeholders::_2));
-                    break;
-                case SDLK_2:
-                    camera->setUpdateCb(std::bind(&Game::freeControlCamera, this, std::placeholders::_1, std::placeholders::_2));
-                    break;
+            case SDL_KEYDOWN:
+            {
+                switch (event.key.keysym.sym) {
+                    case SDLK_a:
+                        control.left = true;
+                        break;
+                    case SDLK_d:
+                        control.right = true;
+                        break;
+                    case SDLK_w:
+                        control.up = true;
+                        break;
+                    case SDLK_s:
+                        control.down = true;
+                        break;
+                    case SDLK_ESCAPE:
+                        SDL_SetRelativeMouseMode(SDL_FALSE);
+                        break;
+                    case SDLK_q:
+                        control.play = false;
+                        break;
+                    case SDLK_f:
+                        toggleFullscreenVideoMode();
+                        break;
+                    case SDLK_1:
+                        camera->setUpdateCb(std::bind(&Game::fpsControlCamera, this, std::placeholders::_1, std::placeholders::_2));
+                        break;
+                    case SDLK_2:
+                        camera->setUpdateCb(std::bind(&Game::freeControlCamera, this, std::placeholders::_1, std::placeholders::_2));
+                        break;
+                }
+                break;
             }
-        } else if (event.type == SDL_KEYUP) {
-            switch (event.key.keysym.sym) {
-                case SDLK_a:
-                    control.left = false;
-                    break;
-                case SDLK_d:
-                    control.right = false;
-                    break;
-                case SDLK_w:
-                    control.up = false;
-                    break;
-                case SDLK_s:
-                    control.down = false;
-                    break;
+
+            case SDL_KEYUP:
+            {
+                switch (event.key.keysym.sym) {
+                    case SDLK_a:
+                        control.left = false;
+                        break;
+                    case SDLK_d:
+                        control.right = false;
+                        break;
+                    case SDLK_w:
+                        control.up = false;
+                        break;
+                    case SDLK_s:
+                        control.down = false;
+                        break;
+                }
+                break;
             }
-        } else if (event.type == SDL_MOUSEWHEEL) {
-            control.zoom += event.wheel.y > 0 ? 1 : -1;
-            if (control.zoom < control.zoom_min) {
-                control.zoom = control.zoom_min;
-            } else if (control.zoom > control.zoom_max) {
-                control.zoom = control.zoom_max;
+
+            case SDL_MOUSEBUTTONDOWN:
+            {
+                SDL_SetRelativeMouseMode(SDL_TRUE);
+
+                auto mesh = std::make_shared<Mesh>();
+                auto cam_pos = camera->getPosition();
+                auto matr = glm::inverse(camera->getWorldTransform());
+                auto cam_forw = camera->getForward() * 5;
+                cam_pos = glm::vec3(glm::vec4(cam_pos, 0.1f) * matr) + (cam_forw*-0.3f);
+                std::vector<float> v{
+                    cam_pos.x, cam_pos.y, cam_pos.y,
+                    cam_forw.x, cam_forw.y, cam_forw.z
+                };
+                mesh->makeVertexBuffer(v);
+                mesh->makeVAO();
+                res("line", mesh);
+
+                auto shape = std::make_shared<Line>();
+                shape->setMesh(getMesh("line"));
+                shape->setShader(getShader("basic"));
+                shape->setColor({1.f, 0.f, 0.f});
+                scene_list.push_back(shape);
+                break;
             }
-        } else if (event.type == SDL_MOUSEMOTION) {
-            control.xrel = event.motion.xrel;
-            control.yrel = event.motion.yrel;
+
+            case SDL_MOUSEMOTION:
+            {
+                control.xrel = event.motion.xrel;
+                control.yrel = event.motion.yrel;
+                break;
+            }
+
+            case SDL_WINDOWEVENT:
+                switch (event.window.event) {
+                    case SDL_WINDOWEVENT_RESIZED:
+                    {
+                        m_screen_width = event.window.data1;
+                        m_screen_height = event.window.data2;
+                        glViewport(0, 0, m_screen_width, m_screen_height);
+                    }
+                    break;
+                }
         }
     }
 
@@ -245,7 +313,7 @@ void Game::loop() noexcept {
     glm::mat4 viewMatrix = camera->eye();
 
     glm::mat4 projectionMatrix = glm::perspective(
-        glm::degrees(((float)m_screen_height/(float)m_screen_width) * 1.2f),
+        glm::degrees(60.f),
         (float)m_screen_width/(float)m_screen_height, 0.001f, 10.f);
 
     for (auto item : scene_list) {
@@ -306,3 +374,14 @@ void Game::freeControlCamera(Object &_c, float) {
     if (control.xrel != 0) { c.setYaw(c.getYaw() + control.xrel / 2); }
     if (control.yrel != 0) { c.setPitch(c.getPitch() + control.yrel / 2); }
 };
+
+
+void Game::toggleFullscreenVideoMode() {
+    if (m_fullscreen_mode) {
+        m_fullscreen_mode = false;
+        SDL_SetWindowFullscreen(window, 0);
+    } else {
+        m_fullscreen_mode = true;
+        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    }
+}
