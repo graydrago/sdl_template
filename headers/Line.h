@@ -25,7 +25,7 @@ class Line: public Model {
 
                 glBindVertexArray(mesh->vaoHandle());
                 glBindBuffer(GL_ARRAY_BUFFER, mesh->vertexBuffer());
-                glDrawArrays(GL_LINES, 0, mesh->geometry().vertices().size());
+                glDrawArrays(GL_LINES, 0, mesh->geometry().vertices().size()/3);
             }
         };
 };
