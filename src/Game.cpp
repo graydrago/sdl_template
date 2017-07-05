@@ -40,6 +40,9 @@ Game::Game() {
     m_fullscreen_mode = false;
     m_screen_width = 1024;
     m_screen_height = 768;
+    m_fov_angle = 60.f;
+    m_near_plane = 0.001f;
+    m_far_plane = 10.f;
     camera = std::make_shared<Camera>();
 }
 
@@ -310,15 +313,16 @@ void Game::loop() noexcept {
     last_frame_time = elapsed_since_start_program;
 
 
-    glm::mat4 viewMatrix = camera->eye();
-
-    glm::mat4 projectionMatrix = glm::perspective(
-        glm::degrees(60.f),
-        (float)m_screen_width/(float)m_screen_height, 0.001f, 10.f);
+    m_view_matrix = camera->eye();
+    m_projection_matrix = glm::perspective(
+        m_screen_height < m_screen_width ? (float)m_screen_height/(float)m_screen_width : aspectRatio(),
+        aspectRatio(),
+        m_near_plane,
+        m_far_plane);
 
     for (auto item : scene_list) {
         item->update(elapsed_seconds);
-        item->render(projectionMatrix, viewMatrix);
+        item->render(m_projection_matrix, m_view_matrix);
     }
 
     SDL_GL_SwapWindow(window);

@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <memory>
+#include <glm/glm.hpp>
 
 #include "../headers/Control.h"
 
@@ -20,6 +21,12 @@ class Game {
 
         int m_screen_width;
         int m_screen_height;
+        float m_fov_angle;
+        float m_near_plane;
+        float m_far_plane;
+        glm::mat4 m_view_matrix;
+        glm::mat4 m_projection_matrix;
+
         Control control;
         std::vector<std::shared_ptr<Object>> scene_list;
         std::shared_ptr<Camera> camera;
@@ -44,6 +51,7 @@ class Game {
         void fpsControlCamera(Object &_c, float);
         void freeControlCamera(Object &_c, float);
         void toggleFullscreenVideoMode();
+        float aspectRatio() { return (float)m_screen_width/(float)m_screen_height; };
 
         std::shared_ptr<ShaderProgram> getShader(std::string name) { return m_shaders_list.at(name); };
         std::shared_ptr<Mesh> getMesh(std::string name) { return m_mesh_list.at(name); };
