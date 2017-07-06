@@ -1,6 +1,12 @@
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include <fstream>
 #include <SDL2/SDL.h>
+#include <glm/gtx/intersect.hpp>
+
 #include "../headers/utils.h"
+#include "../headers/SegmentCollider.h"
+#include "../headers/SphereCollider.h"
 
 std::string loadTextFile(std::string name) {
     std::ifstream f;
@@ -81,3 +87,19 @@ void gl_check_error() {
 }
 
 
+
+bool testIntersection(const SegmentCollider& seg, const SphereCollider& sph) noexcept {
+    auto result {false};
+
+    glm::vec3 intPoint0;
+    glm::vec3 intPoint1;
+    glm::vec3 intNormal0;
+    glm::vec3 intNormal1;
+    result = glm::intersectLineSphere(
+        seg.startPoint(), seg.endPoint(),
+        sph.center(), sph.radius(),
+        intPoint0, intNormal0,
+        intPoint1, intNormal1);
+
+    return result;
+}

@@ -12,21 +12,24 @@ class Camera : public Object {
         glm::vec3 m_forward;
         float m_yaw;
         float m_pitch;
+        float m_speed;
 
     public:
         Camera();
         virtual ~Camera() {};
         glm::mat4 eye();
 
-        void setYaw(float v) noexcept { m_yaw = v; };
-        void setPitch(float v) noexcept { m_pitch = v; };
-        void setUp(glm::vec3 v) noexcept { m_up = v; }
-        void setRight(glm::vec3 v) noexcept { m_right = v; }
-        void setForward(glm::vec3 v) noexcept { m_forward = v; }
+        const Camera& yaw(float v) noexcept { m_yaw = v; return *this; }
+        const Camera& pitch(float v) noexcept { m_pitch = v; return *this; }
+        const Camera& up(glm::vec3 v) noexcept { m_up = v; return *this; }
+        const Camera& right(glm::vec3 v) noexcept { m_right = v; return *this; }
+        const Camera& forward(glm::vec3 v) noexcept { m_forward = v; return *this; }
+        const Camera& speed(float v) noexcept { m_speed = v; return *this; }
 
-        float getYaw() const noexcept { return m_yaw; };
-        float getPitch() const noexcept { return m_pitch; };
-        glm::vec3 getUp() const noexcept { return m_up; }
-        glm::vec3 getRight() const noexcept { return m_right; }
-        glm::vec3 getForward() const noexcept { return m_forward; }
+        float yaw() const noexcept { return m_yaw; }
+        float pitch() const noexcept { return m_pitch; }
+        glm::vec3 up() const noexcept { return m_up; }
+        glm::vec3 right() const noexcept { return m_right; }
+        glm::vec3 forward() const noexcept { return m_forward; }
+        float speed() noexcept { return m_speed; }
 };

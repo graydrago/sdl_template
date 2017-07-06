@@ -34,6 +34,7 @@
 #include "../headers/Line.h"
 #include "../headers/ShaderProgram.h"
 #include "../headers/PlayMusic.h"
+#include "../headers/SphereCollider.h"
 
 
 Game::Game() {
@@ -232,6 +233,9 @@ void Game::loop() noexcept {
                     case SDLK_f:
                         toggleFullscreenVideoMode();
                         break;
+                    case SDLK_LSHIFT:
+                        camera->speed(0.05);
+                        break;
                     case SDLK_1:
                         camera->setUpdateCb(std::bind(&Game::fpsControlCamera, this, std::placeholders::_1, std::placeholders::_2));
                         break;
@@ -257,7 +261,11 @@ void Game::loop() noexcept {
                     case SDLK_s:
                         control.down = false;
                         break;
+                    case SDLK_LSHIFT:
+                        camera->speed(0.02);
+                        break;
                 }
+                if (event.key.keysym.mod == KMOD_SHIFT) { camera->speed(0.05); }
                 break;
             }
 
@@ -265,15 +273,8 @@ void Game::loop() noexcept {
             {
                 if (!SDL_GetRelativeMouseMode()) { SDL_SetRelativeMouseMode(SDL_TRUE); }
 
-                auto ray_start =  glm::unProject(
-                        glm::vec3(m_screen_width/2 + 100, m_screen_height/2, 0.0),
-                        m_view_matrix, m_projection_matrix,
-                        glm::vec4(0.f, 0.f, m_screen_width, m_screen_height));
-
-                auto ray_end =  glm::unProject(
-                        glm::vec3(m_screen_width/2, m_screen_height/2, 1.0),
-                        m_view_matrix, m_projection_matrix,
-                        glm::vec4(0.f, 0.f, m_screen_width, m_screen_height));
+                auto ray_start = aimRay().startPoint();
+                auto ray_end = aimRay().endPoint();
 
                 auto mesh = std::make_shared<Mesh>();
                 std::vector<float> v{
@@ -326,6 +327,18 @@ void Game::loop() noexcept {
         m_near_plane,
         m_far_plane);
 
+    auto ray_start =  glm::unProject(
+            glm::vec3(m_screen_width/2 + 100, m_screen_height/2, 0.0),
+            m_view_matrix, m_projection_matrix,
+            glm::vec4(0.f, 0.f, m_screen_width, m_screen_height));
+
+    auto ray_end =  glm::unProject(
+            glm::vec3(m_screen_width/2, m_screen_height/2, 1.0),
+            m_view_matrix, m_projection_matrix,
+            glm::vec4(0.f, 0.f, m_screen_width, m_screen_height));
+
+    m_aim_ray = SegmentCollider(ray_start, ray_end);
+
     for (auto item : scene_list) {
         item->update(elapsed_seconds);
         item->render(m_projection_matrix, m_view_matrix);
@@ -336,30 +349,29 @@ void Game::loop() noexcept {
 
 
 void Game::fpsControlCamera(Object &_c, float) {
-    float speed = 0.02f;
     Camera &c = dynamic_cast<Camera &>(_c);
 
     if (control.left) {
-        auto left = glm::normalize(glm::cross(c.getUp(), c.getForward()));
-        c.setPosition(c.getPosition() + left * speed);
+        auto left = glm::normalize(glm::cross(c.up(), c.forward()));
+        c.setPosition(c.getPosition() + left * c.speed());
     }
     if (control.right) {
-        auto right = glm::normalize(glm::cross(c.getForward(), c.getUp()));
-        c.setPosition(c.getPosition() + right * speed);
+        auto right = glm::normalize(glm::cross(c.forward(), c.up()));
+        c.setPosition(c.getPosition() + right * c.speed());
     }
     if (control.up) {
-        auto direction = glm::vec3({c.getForward().x, c.getPosition().y, c.getForward().z});
-        auto step = c.getPosition() + glm::normalize(direction) * speed;
+        auto direction = glm::vec3({c.forward().x, 0, c.forward().z});
+        auto step = c.getPosition() + glm::normalize(direction) * c.speed();
         c.setPosition(step);
     }
     if (control.down) {
-        auto direction = glm::vec3({c.getForward().x, c.getPosition().y, c.getForward().z});
-        auto step = c.getPosition() - glm::normalize(direction) * speed;
+        auto direction = glm::vec3({c.forward().x, 0, c.forward().z});
+        auto step = c.getPosition() - glm::normalize(direction) * c.speed();
         c.setPosition(step);
     }
 
-    if (control.xrel != 0) { c.setYaw(c.getYaw() + control.xrel / 2); }
-    if (control.yrel != 0) { c.setPitch(c.getPitch() + control.yrel / 2); }
+    if (control.xrel != 0) { c.yaw(c.yaw() + control.xrel / 2); }
+    if (control.yrel != 0) { c.pitch(c.pitch() + control.yrel / 2); }
 };
 
 
@@ -367,22 +379,22 @@ void Game::freeControlCamera(Object &_c, float) {
     Camera &c = dynamic_cast<Camera &>(_c);
 
     if (control.left) {
-        auto left = glm::normalize(glm::cross(c.getUp(), c.getForward()));
-        c.setPosition(c.getPosition() + left * 0.05f);
+        auto left = glm::normalize(glm::cross(c.up(), c.forward()));
+        c.setPosition(c.getPosition() + left * c.speed());
     }
     if (control.right) {
-        auto right = glm::normalize(glm::cross(c.getForward(), c.getUp()));
-        c.setPosition(c.getPosition() + right * 0.05f);
+        auto right = glm::normalize(glm::cross(c.forward(), c.up()));
+        c.setPosition(c.getPosition() + right * c.speed());
     }
     if (control.up) {
-        c.setPosition(c.getPosition() + glm::normalize(c.getForward()) * 0.05f);
+        c.setPosition(c.getPosition() + glm::normalize(c.forward()) * c.speed());
     }
     if (control.down) {
-        c.setPosition(c.getPosition() - glm::normalize(c.getForward()) * 0.05f);
+        c.setPosition(c.getPosition() - glm::normalize(c.forward()) * c.speed());
     }
 
-    if (control.xrel != 0) { c.setYaw(c.getYaw() + control.xrel / 2); }
-    if (control.yrel != 0) { c.setPitch(c.getPitch() + control.yrel / 2); }
+    if (control.xrel != 0) { c.yaw(c.yaw() + control.xrel / 2); }
+    if (control.yrel != 0) { c.pitch(c.pitch() + control.yrel / 2); }
 };
 
 

@@ -8,6 +8,7 @@
 #include <glm/glm.hpp>
 
 #include "../headers/Control.h"
+#include "../headers/SegmentCollider.h"
 
 class Object;
 class Camera;
@@ -24,6 +25,8 @@ class Game {
         float m_fov_angle;
         float m_near_plane;
         float m_far_plane;
+        SegmentCollider m_aim_ray;
+
         glm::mat4 m_view_matrix;
         glm::mat4 m_projection_matrix;
 
@@ -55,6 +58,7 @@ class Game {
 
         std::shared_ptr<ShaderProgram> getShader(std::string name) { return m_shaders_list.at(name); };
         std::shared_ptr<Mesh> getMesh(std::string name) { return m_mesh_list.at(name); };
+        SegmentCollider aimRay() { return m_aim_ray; }
 
         void res(std::string name, std::shared_ptr<ShaderProgram> shader) { m_shaders_list[name] = shader; };
         void res(std::string name, std::shared_ptr<Mesh> mesh) { m_mesh_list[name] = mesh; };
