@@ -12,7 +12,7 @@ Camera::Camera() :
     m_pitch(0),
     m_speed(0.02)
 {
-    setPosition(glm::vec3(0.f, 0.f, 2.f));
+    position(glm::vec3(0.f, 0.f, 2.f));
 }
 
 
@@ -27,6 +27,6 @@ glm::mat4 Camera::eye() {
     m_forward.y = glm::sin(-r_pitch);
     m_forward.z = glm::cos(r_pitch) * glm::sin(r_yaw);
 
-    return glm::lookAt(getPosition(), getPosition() + glm::normalize(m_forward), m_up);
+    return glm::lookAt(position(), position() + glm::normalize(m_forward), m_up);
 }
 

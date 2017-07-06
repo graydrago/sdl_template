@@ -3,9 +3,9 @@
 #include <glm/glm.hpp>
 
 #include "./Collider.h"
-#include "./SphereCollider.h"
 
 class SegmentCollider : public Collider {
+    private:
         glm::vec3 m_start_point;
         glm::vec3 m_end_point;
         
@@ -17,8 +17,8 @@ class SegmentCollider : public Collider {
             m_start_point(start_point),
             m_end_point(end_point) {};
 
-        const SegmentCollider& startPoint(glm::vec3 v) { m_start_point = v; return *this; }
-        const SegmentCollider& endPoint(glm::vec3 v) { m_start_point = v; return *this; }
+        void startPoint(glm::vec3 v) { m_start_point = v; }
+        void endPoint(glm::vec3 v) { m_start_point = v; }
         glm::vec3 startPoint() const { return m_start_point; }
         glm::vec3 endPoint() const { return m_end_point; }
 };

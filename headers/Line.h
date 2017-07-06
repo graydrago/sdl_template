@@ -13,14 +13,14 @@ class Line: public Model {
         virtual ~Line() {};
 
         void render(const glm::mat4 &P, const glm::mat4 &V) const noexcept {
-            auto mesh = getMesh();
-            auto shader = getShader();
+            auto mesh = this->mesh();
+            auto shader = this->shader();
             if (mesh && shader) {
-                auto wt = getWorldTransform();
+                auto wt = worldTransform();
                 auto PVM = P * V * wt;
 
                 shader->use();
-                shader->setUniform("Color", getColor());
+                shader->setUniform("Color", color());
                 shader->setUniform("PVM", PVM);
 
                 glBindVertexArray(mesh->vaoHandle());

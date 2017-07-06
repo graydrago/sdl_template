@@ -16,10 +16,10 @@ void Object::update(float elapsed_time) noexcept {
 };
 
 
-glm::mat4 Object::getWorldTransform() const noexcept {
+glm::mat4 Object::worldTransform() const noexcept {
     using namespace glm;
 
-    mat4 _scale = scale(mat4{1.f}, m_scale);
+    mat4 _scale = glm::scale(mat4{1.f}, m_scale);
     mat4 _rotate =
         rotate(mat4{1.f}, m_rotation.x, {1.f, 0.f, 0.f}) *
         rotate(mat4{1.f}, m_rotation.y, {0.f, 1.f, 0.f}) *

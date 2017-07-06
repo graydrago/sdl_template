@@ -87,7 +87,6 @@ void gl_check_error() {
 }
 
 
-
 bool testIntersection(const SegmentCollider& seg, const SphereCollider& sph) noexcept {
     auto result {false};
 
@@ -103,3 +102,4 @@ bool testIntersection(const SegmentCollider& seg, const SphereCollider& sph) noe
 
     return result;
 }
+

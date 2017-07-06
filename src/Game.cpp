@@ -34,6 +34,7 @@
 #include "../headers/Line.h"
 #include "../headers/ShaderProgram.h"
 #include "../headers/PlayMusic.h"
+#include "../headers/SegmentCollider.h"
 #include "../headers/SphereCollider.h"
 
 
@@ -133,7 +134,7 @@ void Game::run() {
         shader->compile("./assets/onePointLight.vert", GL_VERTEX_SHADER);
         #endif
         shader->link();
-        res("one_point_light", shader);
+        cache("one_point_light", shader);
     }
     {
         auto shader = std::make_shared<ShaderProgram>();
@@ -145,12 +146,17 @@ void Game::run() {
         shader->compile("./assets/basic.vert", GL_VERTEX_SHADER);
         #endif
         shader->link();
-        res("basic", shader);
+        cache("basic", shader);
     }
     {
-        std::shared_ptr<Mesh> mesh(new Mesh());
+        std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
         mesh->load("./assets/models/monkey.obj");
-        res("monkey", mesh);
+        cache("monkey", mesh);
+    }
+    {
+        std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
+        mesh->load("./assets/models/sphere.obj");
+        cache("sphere", mesh);
     }
 
     PlayMusic music;
@@ -159,27 +165,42 @@ void Game::run() {
 
     std::srand(std::chrono::system_clock::now().time_since_epoch().count());
 
-    camera->setUpdateCb(std::bind(&Game::fpsControlCamera, this, std::placeholders::_1, std::placeholders::_2));
+    camera->updateCb(std::bind(&Game::fpsControlCamera, this, std::placeholders::_1, std::placeholders::_2));
     scene_list.push_back(camera);
 
-    for (int i = -5; i <= 5; i++) {
-        for (int j = -5; j <= 5; j++) {
-            for (int k = -5; k <= 5; k++) {
-                std::shared_ptr<Model> cube{new Model()};
-                cube->setMesh(getMesh("monkey"));
-                cube->setShader(getShader("one_point_light"));
-                cube->setColor(glm::vec3(
+    //for (int i = -5; i <= 5; i++) {
+        //for (int j = -5; j <= 5; j++) {
+            //for (int k = -5; k <= 5; k++) {
+    for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+            for (int k = -1; k <= 1; k++) {
+                auto cube = std::make_shared<Model>();
+                cube->mesh(mesh("monkey"));
+                cube->shader(shader("one_point_light"));
+                cube->color(glm::vec3(
                     std::rand() % 255 * (1.f/255.f),
                     std::rand() % 255 * (1.f/255.f),
                     std::rand() % 255 * (1.f/255.f)
                 ));
-                cube->setPosition({i, j, k});
-                cube->setScale({0.1f, 0.1f, 0.1f});
-                cube->setUpdateCb([&](Object &m, float) -> void {
-                    auto delta = glm::normalize(camera->getPosition() - m.getPosition());
+                cube->position({i, j, k});
+                cube->scale({0.1f, 0.1f, 0.1f});
+                cube->updateCb([&](Object &m, float) -> void {
+                    auto delta = glm::normalize(camera->position() - m.position());
                     auto polar = glm::polar(delta);
-                    m.setRotation({0, polar.y, 0});
+                    m.rotation({0, polar.y, 0});
+
+                    auto collider = std::static_pointer_cast<SphereCollider>(m.collider());
+                    bool has_intersection = testIntersection(m_aim_ray, *collider);
+                    if (has_intersection) {
+                        m.color({1, 1, 1});
+                    } else {
+                    }
                 });
+
+                auto collider = std::make_shared<SphereCollider>();
+                collider->center({i, j, k});
+                collider->radius(0.1f);
+                cube->collider(collider);
                 scene_list.push_back(cube);
             }
         }
@@ -237,10 +258,10 @@ void Game::loop() noexcept {
                         camera->speed(0.05);
                         break;
                     case SDLK_1:
-                        camera->setUpdateCb(std::bind(&Game::fpsControlCamera, this, std::placeholders::_1, std::placeholders::_2));
+                        camera->updateCb(std::bind(&Game::fpsControlCamera, this, std::placeholders::_1, std::placeholders::_2));
                         break;
                     case SDLK_2:
-                        camera->setUpdateCb(std::bind(&Game::freeControlCamera, this, std::placeholders::_1, std::placeholders::_2));
+                        camera->updateCb(std::bind(&Game::freeControlCamera, this, std::placeholders::_1, std::placeholders::_2));
                         break;
                 }
                 break;
@@ -283,12 +304,12 @@ void Game::loop() noexcept {
                 };
                 mesh->makeVertexBuffer(v);
                 mesh->makeVAO();
-                res("line", mesh);
+                cache("line", mesh);
 
                 auto shape = std::make_shared<Line>();
-                shape->setMesh(getMesh("line"));
-                shape->setShader(getShader("basic"));
-                shape->setColor({1.f, 0.f, 0.f});
+                shape->mesh(this->mesh("line"));
+                shape->shader(shader("basic"));
+                shape->color({1.f, 0.f, 0.f});
                 scene_list.push_back(shape);
                 break;
             }
@@ -343,6 +364,12 @@ void Game::loop() noexcept {
         item->update(elapsed_seconds);
         item->render(m_projection_matrix, m_view_matrix);
     }
+    //for (auto pair_: scene_map) {
+        //for (auto item : pair_.second) {
+            //item->update(elapsed_seconds);
+            //item->render(m_projection_matrix, m_view_matrix);
+        //}
+    //}
 
     SDL_GL_SwapWindow(window);
 }
@@ -353,21 +380,21 @@ void Game::fpsControlCamera(Object &_c, float) {
 
     if (control.left) {
         auto left = glm::normalize(glm::cross(c.up(), c.forward()));
-        c.setPosition(c.getPosition() + left * c.speed());
+        c.position(c.position() + left * c.speed());
     }
     if (control.right) {
         auto right = glm::normalize(glm::cross(c.forward(), c.up()));
-        c.setPosition(c.getPosition() + right * c.speed());
+        c.position(c.position() + right * c.speed());
     }
     if (control.up) {
         auto direction = glm::vec3({c.forward().x, 0, c.forward().z});
-        auto step = c.getPosition() + glm::normalize(direction) * c.speed();
-        c.setPosition(step);
+        auto step = c.position() + glm::normalize(direction) * c.speed();
+        c.position(step);
     }
     if (control.down) {
         auto direction = glm::vec3({c.forward().x, 0, c.forward().z});
-        auto step = c.getPosition() - glm::normalize(direction) * c.speed();
-        c.setPosition(step);
+        auto step = c.position() - glm::normalize(direction) * c.speed();
+        c.position(step);
     }
 
     if (control.xrel != 0) { c.yaw(c.yaw() + control.xrel / 2); }
@@ -380,17 +407,17 @@ void Game::freeControlCamera(Object &_c, float) {
 
     if (control.left) {
         auto left = glm::normalize(glm::cross(c.up(), c.forward()));
-        c.setPosition(c.getPosition() + left * c.speed());
+        c.position(c.position() + left * c.speed());
     }
     if (control.right) {
         auto right = glm::normalize(glm::cross(c.forward(), c.up()));
-        c.setPosition(c.getPosition() + right * c.speed());
+        c.position(c.position() + right * c.speed());
     }
     if (control.up) {
-        c.setPosition(c.getPosition() + glm::normalize(c.forward()) * c.speed());
+        c.position(c.position() + glm::normalize(c.forward()) * c.speed());
     }
     if (control.down) {
-        c.setPosition(c.getPosition() - glm::normalize(c.forward()) * c.speed());
+        c.position(c.position() - glm::normalize(c.forward()) * c.speed());
     }
 
     if (control.xrel != 0) { c.yaw(c.yaw() + control.xrel / 2); }

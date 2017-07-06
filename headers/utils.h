@@ -2,6 +2,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include <iostream>
+#include <memory>
 #include <GL/gl.h>
 
 class SegmentCollider;

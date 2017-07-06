@@ -32,6 +32,7 @@ class Game {
 
         Control control;
         std::vector<std::shared_ptr<Object>> scene_list;
+        //std::map<std::string, std::vector<std::shared_ptr<Object>>> scene_map;
         std::shared_ptr<Camera> camera;
         std::map<std::string, std::shared_ptr<ShaderProgram>> m_shaders_list;
         std::map<std::string, std::shared_ptr<Mesh>> m_mesh_list;
@@ -56,12 +57,12 @@ class Game {
         void toggleFullscreenVideoMode();
         float aspectRatio() { return (float)m_screen_width/(float)m_screen_height; };
 
-        std::shared_ptr<ShaderProgram> getShader(std::string name) { return m_shaders_list.at(name); };
-        std::shared_ptr<Mesh> getMesh(std::string name) { return m_mesh_list.at(name); };
+        std::shared_ptr<ShaderProgram> shader(std::string name) { return m_shaders_list.at(name); };
+        std::shared_ptr<Mesh> mesh(std::string name) { return m_mesh_list.at(name); };
         SegmentCollider aimRay() { return m_aim_ray; }
 
-        void res(std::string name, std::shared_ptr<ShaderProgram> shader) { m_shaders_list[name] = shader; };
-        void res(std::string name, std::shared_ptr<Mesh> mesh) { m_mesh_list[name] = mesh; };
+        void cache(std::string name, std::shared_ptr<ShaderProgram> shader) { m_shaders_list[name] = shader; };
+        void cache(std::string name, std::shared_ptr<Mesh> mesh) { m_mesh_list[name] = mesh; };
 
         void operator=(Game const&) = delete;
 
