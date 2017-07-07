@@ -103,3 +103,15 @@ bool testIntersection(const SegmentCollider& seg, const SphereCollider& sph) noe
     return result;
 }
 
+
+bool testIntersection(const SegmentCollider& seg, const glm::vec3& point0, glm::vec3& point1, glm::vec3& point2) noexcept {
+    auto result {false};
+
+    glm::vec3 intPoint;
+    result = glm::intersectLineTriangle(
+        seg.startPoint(), seg.endPoint() - seg.startPoint(),
+        point0, point1, point2,
+        intPoint);
+
+    return result;
+}

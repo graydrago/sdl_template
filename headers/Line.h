@@ -1,11 +1,10 @@
 #pragma once
 
-#include <iostream>
-#include <vector>
 #include <memory>
 #include <functional>
 
 #include "Model.h"
+#include "Mesh.h"
 
 class Line: public Model {
     public:
@@ -23,7 +22,7 @@ class Line: public Model {
                 shader->setUniform("Color", color());
                 shader->setUniform("PVM", PVM);
 
-                glBindVertexArray(mesh->vaoHandle());
+                glBindVertexArray(mesh->VAO());
                 glBindBuffer(GL_ARRAY_BUFFER, mesh->vertexBuffer());
                 glDrawArrays(GL_LINES, 0, mesh->geometry().vertices().size()/3);
             }

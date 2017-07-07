@@ -1,10 +1,8 @@
-#include <fstream>
-#include <sstream>
-#include <stdlib.h>
 #include <GL/glew.h>
-#include <SDL2/SDL.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+#include "../headers/Game.h"
 #include "../headers/Model.h"
 #include "../headers/Mesh.h"
 #include "../headers/utils.h"
@@ -18,11 +16,12 @@ void Model::render(const glm::mat4 &P, const glm::mat4 &V) const noexcept {
 
         m_shaderProgram->use();
         m_shaderProgram->setUniform("Color", color());
+        m_shaderProgram->setUniform("LightPosition", Game::instance().lightPosition());
         m_shaderProgram->setUniform("PVM", PVM);
         m_shaderProgram->setUniform("VM", wt);
         m_shaderProgram->setUniform("NM", NM);
 
-        glBindVertexArray(m_mesh->vaoHandle());
+        glBindVertexArray(m_mesh->VAO());
         glBindBuffer(GL_ARRAY_BUFFER, m_mesh->vertexBuffer());
         glDrawArrays(GL_TRIANGLES, 0, m_mesh->geometry().verticesIndeces().size());
     }

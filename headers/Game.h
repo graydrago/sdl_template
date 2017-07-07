@@ -25,6 +25,7 @@ class Game {
         float m_fov_angle;
         float m_near_plane;
         float m_far_plane;
+        glm::vec3 m_light_position;
         SegmentCollider m_aim_ray;
 
         glm::mat4 m_view_matrix;
@@ -51,6 +52,8 @@ class Game {
         void init();
         void run();
         void loop() noexcept;
+
+        glm::vec3 lightPosition() { return m_light_position; }
 
         void fpsControlCamera(Object &_c, float);
         void freeControlCamera(Object &_c, float);

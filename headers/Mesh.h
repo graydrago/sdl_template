@@ -30,12 +30,13 @@ class Mesh {
         };
         void load(std::string geometryFileName);
 
-        GLuint vertexBuffer() { return m_vertexBufferHandle; };
-        GLuint normalBuffer() { return m_normalBufferHandle; };
-        GLuint vaoHandle() { return m_vaoHandle; };
-        Geometry& geometry() { return m_geometry; };
+        GLuint vertexBuffer() noexcept { return m_vertexBufferHandle; }
+        GLuint normalBuffer() noexcept { return m_normalBufferHandle; }
+        Geometry& geometry() noexcept { return m_geometry; }
+        GLuint VAO() noexcept { return m_vaoHandle; } 
 
         void makeVertexBuffer(std::vector<float> v, GLuint draw_type = GL_STATIC_DRAW);
         void makeNormalBuffer(std::vector<float> n, GLuint draw_type = GL_STATIC_DRAW);
         void makeVAO(GLuint size = 3);
+
 };

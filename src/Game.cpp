@@ -7,6 +7,7 @@
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
 #include <memory>
+#include <random>
 
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
@@ -36,6 +37,7 @@
 #include "../headers/PlayMusic.h"
 #include "../headers/SegmentCollider.h"
 #include "../headers/SphereCollider.h"
+#include "../headers/custom/TrianglePicker.h"
 
 
 Game::Game() {
@@ -117,6 +119,7 @@ void Game::init() {
     glEnable(GL_DEPTH_TEST);
     gl_info();
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    m_light_position = glm::vec3(0.0, 10.0, 10.0);
 
     SDL_SetRelativeMouseMode(SDL_TRUE);
     SDL_GetWindowDisplayMode(window, &m_window_display_mode);
@@ -124,18 +127,18 @@ void Game::init() {
 
 
 void Game::run() {
-    {
-        auto shader = std::make_shared<ShaderProgram>();
-        #ifdef __EMSCRIPTEN__
-        shader->compile("./assets/es2/es_onePointLight.frag", GL_FRAGMENT_SHADER);
-        shader->compile("./assets/es2/es_onePointLight.vert", GL_VERTEX_SHADER);
-        #else
-        shader->compile("./assets/onePointLight.frag", GL_FRAGMENT_SHADER);
-        shader->compile("./assets/onePointLight.vert", GL_VERTEX_SHADER);
-        #endif
-        shader->link();
-        cache("one_point_light", shader);
-    }
+    //{
+        //auto shader = std::make_shared<ShaderProgram>();
+        //#ifdef __EMSCRIPTEN__
+        //shader->compile("./assets/es2/es_onePointLight.frag", GL_FRAGMENT_SHADER);
+        //shader->compile("./assets/es2/es_onePointLight.vert", GL_VERTEX_SHADER);
+        //#else
+        //shader->compile("./assets/onePointLight.frag", GL_FRAGMENT_SHADER);
+        //shader->compile("./assets/onePointLight.vert", GL_VERTEX_SHADER);
+        //#endif
+        //shader->link();
+        //cache("one_point_light", shader);
+    //}
     {
         auto shader = std::make_shared<ShaderProgram>();
         #ifdef __EMSCRIPTEN__
@@ -149,15 +152,25 @@ void Game::run() {
         cache("basic", shader);
     }
     {
+        auto shader = std::make_shared<ShaderProgram>();
+        shader->compile("./assets/onePointLight.frag", GL_FRAGMENT_SHADER);
+        shader->compile("./assets/onePointLightTP.vert", GL_VERTEX_SHADER);
+        shader->link();
+        cache("one_point_light_tp", shader);
+    }
+    {
         std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
         mesh->load("./assets/models/monkey.obj");
         cache("monkey", mesh);
     }
     {
         std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
-        mesh->load("./assets/models/sphere.obj");
-        cache("sphere", mesh);
+        mesh->load("./assets/models/cube2.obj");
+        cache("cube", mesh);
     }
+
+    std::random_device rd;
+    std::uniform_real_distribution<double> random(0.0, 1.0);
 
     PlayMusic music;
     music.load("./assets/music/The Endless Cycle.ogg");
@@ -174,26 +187,43 @@ void Game::run() {
     for (int i = -1; i <= 1; i++) {
         for (int j = -1; j <= 1; j++) {
             for (int k = -1; k <= 1; k++) {
-                auto cube = std::make_shared<Model>();
+                auto cube = std::make_shared<TrianglePicker>();
+                cube->color(glm::vec3(random(rd), random(rd), random(rd)));
                 cube->mesh(mesh("monkey"));
-                cube->shader(shader("one_point_light"));
-                cube->color(glm::vec3(
-                    std::rand() % 255 * (1.f/255.f),
-                    std::rand() % 255 * (1.f/255.f),
-                    std::rand() % 255 * (1.f/255.f)
-                ));
+                cube->shader(shader("one_point_light_tp"));
                 cube->position({i, j, k});
                 cube->scale({0.1f, 0.1f, 0.1f});
                 cube->updateCb([&](Object &m, float) -> void {
-                    auto delta = glm::normalize(camera->position() - m.position());
-                    auto polar = glm::polar(delta);
-                    m.rotation({0, polar.y, 0});
+                    //auto delta = glm::normalize(camera->position() - m.position());
+                    //auto polar = glm::polar(delta);
+                    //m.rotation({0, polar.y, 0});
+                    if (!control.fire) return;
 
                     auto collider = std::static_pointer_cast<SphereCollider>(m.collider());
+                    auto model = static_cast<TrianglePicker*>(&m);
                     bool has_intersection = testIntersection(m_aim_ray, *collider);
                     if (has_intersection) {
-                        m.color({1, 1, 1});
-                    } else {
+                        model->changeTriangleColor(0, {1, 0, 0});
+                        auto mesh = model->mesh();
+                        auto vertices = mesh->geometry().vertices();
+                        auto size = mesh->geometry().vertices().size();
+                        auto matrix = model->worldTransform();
+                        for (decltype(size) i = 0; i < size; i += 9) {
+                            glm::vec3 point0{vertices[i  ], vertices[i+1], vertices[i+2]};
+                            glm::vec3 point1{vertices[i+3], vertices[i+4], vertices[i+5]};
+                            glm::vec3 point2{vertices[i+6], vertices[i+7], vertices[i+8]};
+                            point0 = glm::vec3(matrix * glm::vec4(point0, 1));
+                            point1 = glm::vec3(matrix * glm::vec4(point1, 1));
+                            point2 = glm::vec3(matrix * glm::vec4(point2, 1));
+
+                            int triangle_index = -1;
+                            if (testIntersection(m_aim_ray, point0, point1, point2)) {
+                                triangle_index = i / 9;
+                            }
+                            if (triangle_index > -1) {
+                                model->changeTriangleColor(triangle_index, {1, 0, 0});
+                            }
+                        }
                     }
                 });
 
@@ -292,6 +322,7 @@ void Game::loop() noexcept {
 
             case SDL_MOUSEBUTTONDOWN:
             {
+                control.fire = true;
                 if (!SDL_GetRelativeMouseMode()) { SDL_SetRelativeMouseMode(SDL_TRUE); }
 
                 auto ray_start = aimRay().startPoint();
@@ -311,6 +342,12 @@ void Game::loop() noexcept {
                 shape->shader(shader("basic"));
                 shape->color({1.f, 0.f, 0.f});
                 scene_list.push_back(shape);
+                break;
+            }
+
+            case SDL_MOUSEBUTTONUP:
+            {
+                control.fire = false;
                 break;
             }
 
@@ -359,6 +396,8 @@ void Game::loop() noexcept {
             glm::vec4(0.f, 0.f, m_screen_width, m_screen_height));
 
     m_aim_ray = SegmentCollider(ray_start, ray_end);
+
+    m_light_position = glm::vec3(camera->position().x, 0, camera->position().z);
 
     for (auto item : scene_list) {
         item->update(elapsed_seconds);

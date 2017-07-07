@@ -11,7 +11,6 @@ class SphereCollider : public Collider {
         
     public:
         SphereCollider() :
-            Collider(),
             m_center(0.f, 0.f, 0.f),
             m_radius(1.f) {};
 

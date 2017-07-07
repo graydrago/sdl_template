@@ -16,11 +16,11 @@ class Model : public Object {
         Model() {};
         virtual ~Model() {};
 
-        void mesh(std::shared_ptr<Mesh> v) noexcept { m_mesh = v; }
-        void shader(std::shared_ptr<ShaderProgram> v) noexcept { m_shaderProgram = v; }
+        virtual void mesh(std::shared_ptr<Mesh> v) noexcept { m_mesh = v; }
+        virtual void shader(std::shared_ptr<ShaderProgram> v) noexcept { m_shaderProgram = v; }
 
-        const std::shared_ptr<Mesh> mesh() const noexcept { return m_mesh; }
-        const std::shared_ptr<ShaderProgram> shader() const noexcept { return m_shaderProgram; }
+        virtual const std::shared_ptr<Mesh> mesh() const noexcept { return m_mesh; }
+        virtual const std::shared_ptr<ShaderProgram> shader() const noexcept { return m_shaderProgram; }
 
         void render(const glm::mat4 &P, const glm::mat4 &V) const noexcept;
 };

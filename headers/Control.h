@@ -10,6 +10,7 @@ class Control {
     int xrel;
     int yrel;
     bool play;
+    bool fire;
 
     const int zoom_min = -15;
     const int zoom_max = 15;
@@ -22,6 +23,7 @@ class Control {
         zoom(0),
         xrel(0),
         yrel(0),
-        play(true)
+        play(true),
+        fire(false)
     {};
 };
