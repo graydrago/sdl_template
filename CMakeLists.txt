@@ -11,7 +11,8 @@ set(SOURCE_EXE
   ./src/utils.cpp ./src/ShaderProgram.cpp ./src/Geometry.cpp
   ./src/Model.cpp ./src/Camera.cpp ./src/Mesh.cpp
   ./src/Object.cpp ./src/Game.cpp ./src/PlayMusic.cpp
-  ./src/Collider.cpp ./src/custom/TrianglePicker.cpp main.cpp )
+  ./src/Collider.cpp ./src/custom/TrianglePicker.cpp ./src/Line.cpp
+  main.cpp )
 
 # common flags
 add_flag("-std=c++11")
@@ -29,6 +30,7 @@ if(EMSCRIPTEN)
   add_flag("-s ALLOW_MEMORY_GROWTH=1")
   add_flag("-s USE_OGG=1")
   add_flag("-s USE_VORBIS=1")
+  add_flag("-s DISABLE_EXCEPTION_CATCHING=2")
   add_flag("--emrun")
   add_flag("--preload-file ../assets@/assets/")
   add_flag("-O2")

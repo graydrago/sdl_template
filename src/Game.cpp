@@ -153,8 +153,13 @@ void Game::run() {
     }
     {
         auto shader = std::make_shared<ShaderProgram>();
+        #ifdef __EMSCRIPTEN__
+        shader->compile("./assets/es2/es_onePointLight.frag", GL_FRAGMENT_SHADER);
+        shader->compile("./assets/es2/es_onePointLightTP.vert", GL_VERTEX_SHADER);
+        #else
         shader->compile("./assets/onePointLight.frag", GL_FRAGMENT_SHADER);
         shader->compile("./assets/onePointLightTP.vert", GL_VERTEX_SHADER);
+        #endif
         shader->link();
         cache("one_point_light_tp", shader);
     }
@@ -164,10 +169,27 @@ void Game::run() {
         cache("monkey", mesh);
     }
     {
-        std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
-        mesh->load("./assets/models/cube2.obj");
-        cache("cube", mesh);
+        auto mesh = std::make_shared<Mesh>();
+        std::vector<GLfloat> v(6, 0.f);
+        mesh->makeVertexBuffer(v);
+        mesh->makeVAO();
+
+        auto shape = std::make_shared<Line>();
+        shape->mesh(mesh);
+        shape->shader(shader("basic"));
+        shape->color({1.f, 0.f, 0.f});
+        shape->updateCb([](Object &m, float) {
+            auto& line = static_cast<Line&>(m);
+            auto& game = Game::instance();
+            line.changePoints(game.aimRay().startPoint(), game.aimRay().endPoint());
+        });
+        scene_list.push_back(shape);
     }
+    //{
+        //std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
+        //mesh->load("./assets/models/cube2.obj");
+        //cache("cube", mesh);
+    //}
 
     std::random_device rd;
     std::uniform_real_distribution<double> random(0.0, 1.0);
@@ -181,6 +203,7 @@ void Game::run() {
     camera->updateCb(std::bind(&Game::fpsControlCamera, this, std::placeholders::_1, std::placeholders::_2));
     scene_list.push_back(camera);
 
+
     //for (int i = -5; i <= 5; i++) {
         //for (int j = -5; j <= 5; j++) {
             //for (int k = -5; k <= 5; k++) {
@@ -193,37 +216,16 @@ void Game::run() {
                 cube->shader(shader("one_point_light_tp"));
                 cube->position({i, j, k});
                 cube->scale({0.1f, 0.1f, 0.1f});
-                cube->updateCb([&](Object &m, float) -> void {
-                    //auto delta = glm::normalize(camera->position() - m.position());
-                    //auto polar = glm::polar(delta);
-                    //m.rotation({0, polar.y, 0});
-                    if (!control.fire) return;
+                cube->updateCb([](Object& m, float) {
+                    auto& game = Game::instance();
+                    if (!game.control.fire) return;
 
                     auto collider = std::static_pointer_cast<SphereCollider>(m.collider());
-                    auto model = static_cast<TrianglePicker*>(&m);
-                    bool has_intersection = testIntersection(m_aim_ray, *collider);
+                    auto& model = static_cast<TrianglePicker&>(m);
+                    bool has_intersection = testIntersection(game.aimRay(), *collider);
                     if (has_intersection) {
-                        model->changeTriangleColor(0, {1, 0, 0});
-                        auto mesh = model->mesh();
-                        auto vertices = mesh->geometry().vertices();
-                        auto size = mesh->geometry().vertices().size();
-                        auto matrix = model->worldTransform();
-                        for (decltype(size) i = 0; i < size; i += 9) {
-                            glm::vec3 point0{vertices[i  ], vertices[i+1], vertices[i+2]};
-                            glm::vec3 point1{vertices[i+3], vertices[i+4], vertices[i+5]};
-                            glm::vec3 point2{vertices[i+6], vertices[i+7], vertices[i+8]};
-                            point0 = glm::vec3(matrix * glm::vec4(point0, 1));
-                            point1 = glm::vec3(matrix * glm::vec4(point1, 1));
-                            point2 = glm::vec3(matrix * glm::vec4(point2, 1));
-
-                            int triangle_index = -1;
-                            if (testIntersection(m_aim_ray, point0, point1, point2)) {
-                                triangle_index = i / 9;
-                            }
-                            if (triangle_index > -1) {
-                                model->changeTriangleColor(triangle_index, {1, 0, 0});
-                            }
-                        }
+                        //scene_groups["found_models"].push_back(std::make_shared<Object>(&m));
+                        model.paint(game.aimRay(), {0, 1, 0});
                     }
                 });
 
@@ -264,35 +266,55 @@ void Game::loop() noexcept {
             {
                 switch (event.key.keysym.sym) {
                     case SDLK_a:
+                    {
                         control.left = true;
                         break;
+                    }
                     case SDLK_d:
+                    {
                         control.right = true;
                         break;
+                    }
                     case SDLK_w:
+                    {
                         control.up = true;
                         break;
+                    }
                     case SDLK_s:
+                    {
                         control.down = true;
                         break;
+                    }
                     case SDLK_ESCAPE:
+                    {
                         SDL_SetRelativeMouseMode(SDL_FALSE);
                         break;
+                    }
                     case SDLK_q:
+                    {
                         control.play = false;
                         break;
+                    }
                     case SDLK_f:
+                    {
                         toggleFullscreenVideoMode();
                         break;
+                    }
                     case SDLK_LSHIFT:
+                    {
                         camera->speed(0.05);
                         break;
+                    }
                     case SDLK_1:
+                    {
                         camera->updateCb(std::bind(&Game::fpsControlCamera, this, std::placeholders::_1, std::placeholders::_2));
                         break;
+                    }
                     case SDLK_2:
+                    {
                         camera->updateCb(std::bind(&Game::freeControlCamera, this, std::placeholders::_1, std::placeholders::_2));
                         break;
+                    }
                 }
                 break;
             }
@@ -301,20 +323,30 @@ void Game::loop() noexcept {
             {
                 switch (event.key.keysym.sym) {
                     case SDLK_a:
+                    {
                         control.left = false;
                         break;
+                    }
                     case SDLK_d:
+                    {
                         control.right = false;
                         break;
+                    }
                     case SDLK_w:
+                    {
                         control.up = false;
                         break;
+                    }
                     case SDLK_s:
+                    {
                         control.down = false;
                         break;
+                    }
                     case SDLK_LSHIFT:
-                        camera->speed(0.02);
+                    {
+                        camera->speed(0.01);
                         break;
+                    }
                 }
                 if (event.key.keysym.mod == KMOD_SHIFT) { camera->speed(0.05); }
                 break;
@@ -325,23 +357,22 @@ void Game::loop() noexcept {
                 control.fire = true;
                 if (!SDL_GetRelativeMouseMode()) { SDL_SetRelativeMouseMode(SDL_TRUE); }
 
-                auto ray_start = aimRay().startPoint();
-                auto ray_end = aimRay().endPoint();
+                //auto ray_start = aimRay().startPoint();
+                //auto ray_end = aimRay().endPoint();
 
-                auto mesh = std::make_shared<Mesh>();
-                std::vector<float> v{
-                    ray_start.x, ray_start.y, ray_start.z,
-                    ray_end.x, ray_end.y, ray_end.z
-                };
-                mesh->makeVertexBuffer(v);
-                mesh->makeVAO();
-                cache("line", mesh);
+                //auto mesh = std::make_shared<Mesh>();
+                //std::vector<float> v{
+                    //ray_start.x, ray_start.y, ray_start.z,
+                    //ray_end.x, ray_end.y, ray_end.z
+                //};
+                //mesh->makeVertexBuffer(v);
+                //mesh->makeVAO();
 
-                auto shape = std::make_shared<Line>();
-                shape->mesh(this->mesh("line"));
-                shape->shader(shader("basic"));
-                shape->color({1.f, 0.f, 0.f});
-                scene_list.push_back(shape);
+                //auto shape = std::make_shared<Line>();
+                //shape->mesh(mesh);
+                //shape->shader(shader("basic"));
+                //shape->color({1.f, 0.f, 0.f});
+                //scene_list.push_back(shape);
                 break;
             }
 
@@ -385,8 +416,9 @@ void Game::loop() noexcept {
         m_near_plane,
         m_far_plane);
 
+    SDL_SetWindowTitle(window, std::to_string(m_screen_height).c_str());
     auto ray_start =  glm::unProject(
-            glm::vec3(m_screen_width/2 + 100, m_screen_height/2, 0.0),
+            glm::vec3(m_screen_width, 0, 0.0),
             m_view_matrix, m_projection_matrix,
             glm::vec4(0.f, 0.f, m_screen_width, m_screen_height));
 
@@ -396,8 +428,7 @@ void Game::loop() noexcept {
             glm::vec4(0.f, 0.f, m_screen_width, m_screen_height));
 
     m_aim_ray = SegmentCollider(ray_start, ray_end);
-
-    m_light_position = glm::vec3(camera->position().x, 0, camera->position().z);
+    m_light_position = glm::vec3(camera->position().x, camera->position().y, camera->position().z);
 
     for (auto item : scene_list) {
         item->update(elapsed_seconds);
@@ -414,8 +445,8 @@ void Game::loop() noexcept {
 }
 
 
-void Game::fpsControlCamera(Object &_c, float) {
-    Camera &c = dynamic_cast<Camera &>(_c);
+void Game::fpsControlCamera(Object& _c, float) {
+    auto& c = static_cast<Camera&>(_c);
 
     if (control.left) {
         auto left = glm::normalize(glm::cross(c.up(), c.forward()));
@@ -441,8 +472,8 @@ void Game::fpsControlCamera(Object &_c, float) {
 };
 
 
-void Game::freeControlCamera(Object &_c, float) {
-    Camera &c = dynamic_cast<Camera &>(_c);
+void Game::freeControlCamera(Object& _c, float) {
+    auto& c = static_cast<Camera&>(_c);
 
     if (control.left) {
         auto left = glm::normalize(glm::cross(c.up(), c.forward()));

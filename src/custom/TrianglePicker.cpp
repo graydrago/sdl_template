@@ -88,3 +88,27 @@ void TrianglePicker::changeTriangleColor(int id, glm::vec3 _color) {
     glBindBuffer(GL_ARRAY_BUFFER, m_colors_buffer);
     glBufferSubData(GL_ARRAY_BUFFER, id * 9 * sizeof(GLfloat), 9 * sizeof(GLfloat), tmp.data());
 }
+
+
+void TrianglePicker::paint(SegmentCollider ray, glm::vec3 _color) {
+    auto mesh = this->mesh();
+    auto vertices = mesh->geometry().vertices();
+    auto size = mesh->geometry().vertices().size();
+    auto matrix = worldTransform();
+    for (decltype(size) i = 0; i < size; i += 9) {
+        glm::vec3 point0{vertices[i  ], vertices[i+1], vertices[i+2]};
+        glm::vec3 point1{vertices[i+3], vertices[i+4], vertices[i+5]};
+        glm::vec3 point2{vertices[i+6], vertices[i+7], vertices[i+8]};
+        point0 = glm::vec3(matrix * glm::vec4(point0, 1));
+        point1 = glm::vec3(matrix * glm::vec4(point1, 1));
+        point2 = glm::vec3(matrix * glm::vec4(point2, 1));
+
+        int triangle_index = -1;
+        if (testIntersection(ray, point0, point1, point2)) {
+            triangle_index = i / 9;
+        }
+        if (triangle_index > -1) {
+            changeTriangleColor(triangle_index, _color);
+        }
+    }
+}

@@ -23,4 +23,5 @@ class TrianglePicker : public Model {
         void render(const glm::mat4 &P, const glm::mat4 &V) const noexcept;
         virtual void mesh(std::shared_ptr<Mesh> v) noexcept;
         void changeTriangleColor(int id, glm::vec3 _color);
+        void paint(SegmentCollider ray, glm::vec3 _color);
 };

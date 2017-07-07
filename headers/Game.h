@@ -8,6 +8,7 @@
 #include <glm/glm.hpp>
 
 #include "../headers/Control.h"
+#include "../headers/Line.h"
 #include "../headers/SegmentCollider.h"
 
 class Object;
@@ -33,7 +34,7 @@ class Game {
 
         Control control;
         std::vector<std::shared_ptr<Object>> scene_list;
-        //std::map<std::string, std::vector<std::shared_ptr<Object>>> scene_map;
+        std::map<std::string, std::vector<std::shared_ptr<Object>>> scene_groups;
         std::shared_ptr<Camera> camera;
         std::map<std::string, std::shared_ptr<ShaderProgram>> m_shaders_list;
         std::map<std::string, std::shared_ptr<Mesh>> m_mesh_list;
@@ -55,8 +56,8 @@ class Game {
 
         glm::vec3 lightPosition() { return m_light_position; }
 
-        void fpsControlCamera(Object &_c, float);
-        void freeControlCamera(Object &_c, float);
+        void fpsControlCamera(Object& _c, float);
+        void freeControlCamera(Object& _c, float);
         void toggleFullscreenVideoMode();
         float aspectRatio() { return (float)m_screen_width/(float)m_screen_height; };
 

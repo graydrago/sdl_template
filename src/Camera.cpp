@@ -10,7 +10,7 @@ Camera::Camera() :
     m_forward(0.f, 0.f, 0.f),
     m_yaw(-90),
     m_pitch(0),
-    m_speed(0.02)
+    m_speed(0.01)
 {
     position(glm::vec3(0.f, 0.f, 2.f));
 }
