@@ -89,7 +89,7 @@ void Game::init() {
         "Template",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         m_screen_width, m_screen_height,
-        SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+        SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_INPUT_GRABBED);
     if (window == nullptr) {
         auto err_text = std::string("Unable to create window: ") + SDL_GetError();
         throw new std::runtime_error(err_text);
@@ -172,7 +172,6 @@ void Game::run() {
         auto mesh = std::make_shared<Mesh>();
         std::vector<GLfloat> v(6, 0.f);
         mesh->makeVertexBuffer(v);
-        mesh->makeVAO();
 
         auto shape = std::make_shared<Line>();
         shape->mesh(mesh);
@@ -185,11 +184,11 @@ void Game::run() {
         });
         scene_list.push_back(shape);
     }
-    //{
-        //std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
-        //mesh->load("./assets/models/cube2.obj");
-        //cache("cube", mesh);
-    //}
+    {
+        std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
+        mesh->load("./assets/models/cube2.obj");
+        cache("cube", mesh);
+    }
 
     std::random_device rd;
     std::uniform_real_distribution<double> random(0.0, 1.0);
@@ -224,8 +223,17 @@ void Game::run() {
                     auto& model = static_cast<TrianglePicker&>(m);
                     bool has_intersection = testIntersection(game.aimRay(), *collider);
                     if (has_intersection) {
-                        //scene_groups["found_models"].push_back(std::make_shared<Object>(&m));
-                        model.paint(game.aimRay(), {0, 1, 0});
+                        auto obj = game.bag("neares_model");
+                        if (obj == nullptr) {
+                            game.bag("neares_model", &model);
+                        } else {
+                            auto start_point = game.aimRay().startPoint();
+                            auto dist_saved = obj->position() - start_point ;
+                            auto dist_model = model.position() - start_point ;
+                            if (glm::dot(dist_model, dist_model) < glm::dot(dist_saved, dist_saved)) {
+                                game.bag("neares_model", &model);
+                            }
+                        }
                     }
                 });
 
@@ -416,9 +424,8 @@ void Game::loop() noexcept {
         m_near_plane,
         m_far_plane);
 
-    SDL_SetWindowTitle(window, std::to_string(m_screen_height).c_str());
     auto ray_start =  glm::unProject(
-            glm::vec3(m_screen_width, 0, 0.0),
+            glm::vec3(m_screen_width/2, m_screen_height/2+10, 0.0),
             m_view_matrix, m_projection_matrix,
             glm::vec4(0.f, 0.f, m_screen_width, m_screen_height));
 
@@ -432,14 +439,18 @@ void Game::loop() noexcept {
 
     for (auto item : scene_list) {
         item->update(elapsed_seconds);
+    }
+
+    auto model_at_gunpoint = bag("neares_model");
+    if (model_at_gunpoint != nullptr) {
+        auto tmp = static_cast<TrianglePicker*>(model_at_gunpoint);
+        tmp->paint(aimRay(), {0, 1, 0});
+        bag("neares_model", nullptr);
+    }
+
+    for (auto item : scene_list) {
         item->render(m_projection_matrix, m_view_matrix);
     }
-    //for (auto pair_: scene_map) {
-        //for (auto item : pair_.second) {
-            //item->update(elapsed_seconds);
-            //item->render(m_projection_matrix, m_view_matrix);
-        //}
-    //}
 
     SDL_GL_SwapWindow(window);
 }
@@ -496,11 +507,31 @@ void Game::freeControlCamera(Object& _c, float) {
 
 
 void Game::toggleFullscreenVideoMode() {
-    if (m_fullscreen_mode) {
-        m_fullscreen_mode = false;
-        SDL_SetWindowFullscreen(window, 0);
-    } else {
-        m_fullscreen_mode = true;
-        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-    }
+    // TODO fix it
+    // program stops responding after returning to windowed mode
+    //if (m_fullscreen_mode) {
+        //m_fullscreen_mode = false;
+        //SDL_SetWindowFullscreen(window, 0);
+    //} else {
+        //m_fullscreen_mode = true;
+        //SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+        //m_window_display_mode.h = 1920;
+        //m_window_display_mode.h = 1080;
+        //SDL_SetWindowDisplayMode(window, &m_window_display_mode);
+    //}
 }
+
+
+void Game::bag(std::string name, Object* v) {
+    if (v == nullptr) {
+        m_bag.erase(name);
+    } else {
+        m_bag[name] = v;
+    }
+};
+
+
+Object* Game::bag(std::string name) {
+    auto tmp = m_bag.find(name);
+    return tmp == m_bag.end() ? nullptr : tmp->second;
+};

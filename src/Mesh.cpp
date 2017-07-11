@@ -23,19 +23,18 @@ void Mesh::load(std::string geometryFileName) {
 
     makeVertexBuffer(vertices);
     makeNormalBuffer(normals);
-    makeVAO();
     gl_check_error();
 }
 
 
 void Mesh::makeVertexBuffer(std::vector<float> vertices, GLuint draw_type) {
-    if (m_normalBufferHandle > 0) {
-      glDeleteBuffers(1, &m_vertexBufferHandle);
+    if (m_normalBuffer > 0) {
+      glDeleteBuffers(1, &m_vertexBuffer);
     }
     m_geometry.vertices(vertices);
 
-    glGenBuffers(1, &m_vertexBufferHandle);
-    glBindBuffer(GL_ARRAY_BUFFER, m_vertexBufferHandle);
+    glGenBuffers(1, &m_vertexBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
     glBufferData(GL_ARRAY_BUFFER,
                  vertices.size() * sizeof(decltype(vertices)::value_type),
                  vertices.data(),
@@ -45,39 +44,14 @@ void Mesh::makeVertexBuffer(std::vector<float> vertices, GLuint draw_type) {
 
 
 void Mesh::makeNormalBuffer(std::vector<float> normals, GLuint draw_type) {
-    if (m_normalBufferHandle > 0) glDeleteBuffers(1, &m_normalBufferHandle);
+    if (m_normalBuffer > 0) glDeleteBuffers(1, &m_normalBuffer);
 
-    glGenBuffers(1, &m_normalBufferHandle);
-    glBindBuffer(GL_ARRAY_BUFFER, m_normalBufferHandle);
+    glGenBuffers(1, &m_normalBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, m_normalBuffer);
     glBufferData(GL_ARRAY_BUFFER,
             normals.size() * sizeof(decltype(normals)::value_type),
             normals.data(),
             draw_type);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
-
-void Mesh::makeVAO(GLuint size) {
-    if (m_vaoHandle > 0) glDeleteVertexArrays(1, &m_vaoHandle);
-    bool has_normals = m_geometry.normals().size() > 0;
-
-    glGenVertexArrays(1, &m_vaoHandle);
-    glBindVertexArray(m_vaoHandle);
-    glEnableVertexAttribArray(0);
-
-    if (has_normals) {
-      glEnableVertexAttribArray(1);
-    }
-
-    glBindBuffer(GL_ARRAY_BUFFER, m_vertexBufferHandle);
-    glVertexAttribPointer(0, size, GL_FLOAT, GL_FALSE, 0, NULL);
-
-    if (has_normals) {
-      glBindBuffer(GL_ARRAY_BUFFER, m_normalBufferHandle);
-      glVertexAttribPointer(1, size, GL_FLOAT, GL_FALSE, 0, NULL);
-    }
-
-    glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 

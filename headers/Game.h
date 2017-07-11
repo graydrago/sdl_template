@@ -23,6 +23,10 @@ class Game {
 
         int m_screen_width;
         int m_screen_height;
+        int m_window_screen_width;
+        int m_window_screen_height;
+        int m_fullscreen_screen_width;
+        int m_fullscreen_screen_height;
         float m_fov_angle;
         float m_near_plane;
         float m_far_plane;
@@ -34,7 +38,9 @@ class Game {
 
         Control control;
         std::vector<std::shared_ptr<Object>> scene_list;
-        std::map<std::string, std::vector<std::shared_ptr<Object>>> scene_groups;
+        //std::map<std::string, std::vector<std::shared_ptr<Object>>> scene_groups;
+        
+        std::map<std::string, Object*> m_bag;
         std::shared_ptr<Camera> camera;
         std::map<std::string, std::shared_ptr<ShaderProgram>> m_shaders_list;
         std::map<std::string, std::shared_ptr<Mesh>> m_mesh_list;
@@ -67,6 +73,8 @@ class Game {
 
         void cache(std::string name, std::shared_ptr<ShaderProgram> shader) { m_shaders_list[name] = shader; };
         void cache(std::string name, std::shared_ptr<Mesh> mesh) { m_mesh_list[name] = mesh; };
+        void bag(std::string name, Object* v);
+        Object* bag(std::string name);
 
         void operator=(Game const&) = delete;
 

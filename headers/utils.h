@@ -17,4 +17,5 @@ void gl_check_error();
 const char* gl_get_error_string(GLenum err);
 
 bool testIntersection(const SegmentCollider& seg, const SphereCollider& sph) noexcept;
-bool testIntersection(const SegmentCollider& seg, const glm::vec3& point0, glm::vec3& point1, glm::vec3& point2) noexcept;
+bool testIntersection(const SegmentCollider& seg, const glm::vec3& point0, const glm::vec3& point1, const glm::vec3& point2) noexcept;
+bool testIntersection(const SegmentCollider& seg, const glm::vec3& point0, const glm::vec3& point1, const glm::vec3& point2, glm::vec3& int_point) noexcept;

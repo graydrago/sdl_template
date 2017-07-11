@@ -13,30 +13,24 @@ class MeshExeption : public std::runtime_error {
 class Mesh {
     private:
         std::string m_fileName;
-        GLuint m_vertexBufferHandle;
-        GLuint m_normalBufferHandle;
-        GLuint m_vaoHandle;
+        GLuint m_vertexBuffer;
+        GLuint m_normalBuffer;
         Geometry m_geometry;
 
     public:
         Mesh() :
-            m_vertexBufferHandle(0),
-            m_normalBufferHandle(0),
-            m_vaoHandle(0) {};
+            m_vertexBuffer(0),
+            m_normalBuffer(0) {}
         virtual ~Mesh() {
-            if (m_normalBufferHandle > 0) glDeleteBuffers(1, &m_vertexBufferHandle);
-            if (m_normalBufferHandle > 0) glDeleteBuffers(1, &m_normalBufferHandle);
-            if (m_vaoHandle > 0) glDeleteVertexArrays(1, &m_vaoHandle);
+            glDeleteBuffers(1, &m_vertexBuffer);
+            glDeleteBuffers(1, &m_normalBuffer);
         };
         void load(std::string geometryFileName);
 
-        GLuint vertexBuffer() noexcept { return m_vertexBufferHandle; }
-        GLuint normalBuffer() noexcept { return m_normalBufferHandle; }
+        GLuint vertexBuffer() noexcept { return m_vertexBuffer; }
+        GLuint normalBuffer() noexcept { return m_normalBuffer; }
         Geometry& geometry() noexcept { return m_geometry; }
-        GLuint VAO() noexcept { return m_vaoHandle; } 
 
         void makeVertexBuffer(std::vector<float> v, GLuint draw_type = GL_STATIC_DRAW);
         void makeNormalBuffer(std::vector<float> n, GLuint draw_type = GL_STATIC_DRAW);
-        void makeVAO(GLuint size = 3);
-
 };

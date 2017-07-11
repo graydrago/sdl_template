@@ -21,7 +21,7 @@ void TrianglePicker::render(const glm::mat4 &P, const glm::mat4 &V) const noexce
         shader->setUniform("VM", wt);
         shader->setUniform("NM", NM);
 
-        glBindVertexArray(m_vao);
+        glBindVertexArray(vao());
         glBindBuffer(GL_ARRAY_BUFFER, mesh->vertexBuffer());
         glDrawArrays(GL_TRIANGLES, 0, mesh->geometry().verticesIndeces().size());
 
@@ -55,16 +55,8 @@ void TrianglePicker::mesh(std::shared_ptr<Mesh> v) noexcept {
             //GL_STATIC_DRAW);
             GL_DYNAMIC_DRAW);
 
-    glGenVertexArrays(1, &m_vao);
-    glBindVertexArray(m_vao);
 
-    glBindBuffer(GL_ARRAY_BUFFER, mesh->vertexBuffer());
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-
-    glBindBuffer(GL_ARRAY_BUFFER, mesh->normalBuffer());
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glBindVertexArray(vao());
 
     glBindBuffer(GL_ARRAY_BUFFER, m_colors_buffer);
     glEnableVertexAttribArray(2);
@@ -93,22 +85,46 @@ void TrianglePicker::changeTriangleColor(int id, glm::vec3 _color) {
 void TrianglePicker::paint(SegmentCollider ray, glm::vec3 _color) {
     auto mesh = this->mesh();
     auto vertices = mesh->geometry().vertices();
+    auto normals = mesh->geometry().normals();
     auto size = mesh->geometry().vertices().size();
-    auto matrix = worldTransform();
+    auto matrix = glm::inverse(worldTransform());
+    int nearist_triangle_id = -1;
+
+    auto to_local = [&matrix](glm::vec3 point) -> glm::vec3 { return glm::vec3(matrix * glm::vec4(point, 1.f)); };
+
+    auto ray_start_point = to_local(ray.startPoint());
+    auto ray_end_point = to_local(ray.endPoint());
+    SegmentCollider _ray(ray_start_point, ray_end_point);
+    float nearist = glm::length(ray_end_point - ray_start_point);
+    glm::vec3 ray_normal = glm::normalize(ray_start_point - ray_end_point);
+
     for (decltype(size) i = 0; i < size; i += 9) {
         glm::vec3 point0{vertices[i  ], vertices[i+1], vertices[i+2]};
         glm::vec3 point1{vertices[i+3], vertices[i+4], vertices[i+5]};
         glm::vec3 point2{vertices[i+6], vertices[i+7], vertices[i+8]};
-        point0 = glm::vec3(matrix * glm::vec4(point0, 1));
-        point1 = glm::vec3(matrix * glm::vec4(point1, 1));
-        point2 = glm::vec3(matrix * glm::vec4(point2, 1));
 
-        int triangle_index = -1;
-        if (testIntersection(ray, point0, point1, point2)) {
-            triangle_index = i / 9;
+        glm::vec3 int_point;
+        if (testIntersection(_ray, point0, point1, point2, int_point)) {
+            float int_point_length = glm::length(int_point - ray_start_point);
+            glm::vec3 trinagle_normal = glm::normalize(glm::cross(point2 - point1, point0 - point1));
+            if (glm::dot(ray_normal, trinagle_normal) > 0) {
+                if (int_point_length < nearist) {
+                      nearist = int_point_length;
+                      nearist_triangle_id = i / 9;
+                }
+            }
         }
-        if (triangle_index > -1) {
-            changeTriangleColor(triangle_index, _color);
-        }
+
+        //if (triangle_id > -1) {
+            //glm::vec3 trinagle_normal = glm::normalize(glm::cross(point2 - point1, point0 - point1));
+            //glm::vec3 ray_normal = glm::normalize(ray.startPoint() - ray.endPoint());
+            //if (glm::dot(ray_normal, trinagle_normal) > 0) {
+                //changeTriangleColor(triangle_index, _color);
+            //}
+        //}
+    }
+
+    if (nearist_triangle_id > -1) {
+        changeTriangleColor(nearist_triangle_id, _color);
     }
 }

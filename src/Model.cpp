@@ -21,9 +21,28 @@ void Model::render(const glm::mat4 &P, const glm::mat4 &V) const noexcept {
         m_shaderProgram->setUniform("VM", wt);
         m_shaderProgram->setUniform("NM", NM);
 
-        glBindVertexArray(m_mesh->VAO());
+        glBindVertexArray(m_vao);
         glBindBuffer(GL_ARRAY_BUFFER, m_mesh->vertexBuffer());
         glDrawArrays(GL_TRIANGLES, 0, m_mesh->geometry().verticesIndeces().size());
     }
 }
 
+
+
+void Model::mesh(std::shared_ptr<Mesh> v) noexcept {
+    m_mesh = v;
+
+    glGenVertexArrays(1, &m_vao);
+    glBindVertexArray(m_vao);
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_mesh->vertexBuffer());
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_mesh->normalBuffer());
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}

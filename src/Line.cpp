@@ -12,7 +12,7 @@ void Line::render(const glm::mat4 &P, const glm::mat4 &V) const noexcept {
         shader->setUniform("Color", color());
         shader->setUniform("PVM", PVM);
 
-        glBindVertexArray(mesh->VAO());
+        glBindVertexArray(vao());
         glBindBuffer(GL_ARRAY_BUFFER, mesh->vertexBuffer());
         glDrawArrays(GL_LINES, 0, mesh->geometry().vertices().size()/3);
     }

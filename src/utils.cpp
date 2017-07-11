@@ -104,14 +104,20 @@ bool testIntersection(const SegmentCollider& seg, const SphereCollider& sph) noe
 }
 
 
-bool testIntersection(const SegmentCollider& seg, const glm::vec3& point0, glm::vec3& point1, glm::vec3& point2) noexcept {
+bool testIntersection(const SegmentCollider& seg, const glm::vec3& point0, const glm::vec3& point1, const glm::vec3& point2) noexcept {
+    glm::vec3 intPoint;
+    return testIntersection(seg, point0, point1, point2, intPoint);
+}
+
+
+bool testIntersection(const SegmentCollider& seg, const glm::vec3& point0, const glm::vec3& point1, const glm::vec3& point2, glm::vec3& int_point) noexcept
+{
     auto result {false};
 
-    glm::vec3 intPoint;
     result = glm::intersectLineTriangle(
-        seg.startPoint(), seg.endPoint() - seg.startPoint(),
+        seg.startPoint(), glm::normalize(seg.endPoint() - seg.startPoint()),
         point0, point1, point2,
-        intPoint);
+        int_point);
 
     return result;
 }
