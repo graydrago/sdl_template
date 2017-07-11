@@ -193,19 +193,16 @@ void Game::run() {
     std::random_device rd;
     std::uniform_real_distribution<double> random(0.0, 1.0);
 
-    PlayMusic music;
-    music.load("./assets/music/The Endless Cycle.ogg");
-    music.play();
+    //PlayMusic music;
+    //music.load("./assets/music/The Endless Cycle.ogg");
+    //music.play();
 
     std::srand(std::chrono::system_clock::now().time_since_epoch().count());
 
     camera->updateCb(std::bind(&Game::fpsControlCamera, this, std::placeholders::_1, std::placeholders::_2));
+    camera->position({0, 0, 0.5});
     scene_list.push_back(camera);
 
-
-    //for (int i = -5; i <= 5; i++) {
-        //for (int j = -5; j <= 5; j++) {
-            //for (int k = -5; k <= 5; k++) {
     for (int i = -1; i <= 1; i++) {
         for (int j = -1; j <= 1; j++) {
             for (int k = -1; k <= 1; k++) {

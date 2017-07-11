@@ -36,12 +36,14 @@ void Model::mesh(std::shared_ptr<Mesh> v) noexcept {
     glBindVertexArray(m_vao);
 
     glBindBuffer(GL_ARRAY_BUFFER, m_mesh->vertexBuffer());
-    glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(0);
 
-    glBindBuffer(GL_ARRAY_BUFFER, m_mesh->normalBuffer());
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    if (m_mesh->normalBuffer() > 0) {
+      glBindBuffer(GL_ARRAY_BUFFER, m_mesh->normalBuffer());
+      glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+      glEnableVertexAttribArray(1);
+    }
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);

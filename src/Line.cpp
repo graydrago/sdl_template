@@ -8,12 +8,13 @@ void Line::render(const glm::mat4 &P, const glm::mat4 &V) const noexcept {
         auto wt = worldTransform();
         auto PVM = P * V * wt;
 
+        glBindVertexArray(vao());
+        glBindBuffer(GL_ARRAY_BUFFER, mesh->vertexBuffer());
+
         shader->use();
         shader->setUniform("Color", color());
         shader->setUniform("PVM", PVM);
 
-        glBindVertexArray(vao());
-        glBindBuffer(GL_ARRAY_BUFFER, mesh->vertexBuffer());
         glDrawArrays(GL_LINES, 0, mesh->geometry().vertices().size()/3);
     }
 };
@@ -28,6 +29,7 @@ void Line::changePoints(const glm::vec3 startPoint, const glm::vec3 endPoint) {
     tmp.push_back(endPoint.y);
     tmp.push_back(endPoint.z);
 
+    glBindVertexArray(vao());
     glBindBuffer(GL_ARRAY_BUFFER, mesh()->vertexBuffer());
     glBufferSubData(GL_ARRAY_BUFFER, 0, 6 * sizeof(GLfloat), tmp.data());
 }

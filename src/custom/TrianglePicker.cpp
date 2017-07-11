@@ -47,6 +47,8 @@ void TrianglePicker::mesh(std::shared_ptr<Mesh> v) noexcept {
         colors.push_back(color.z);
     }
 
+    glBindVertexArray(vao());
+
     glGenBuffers(1, &m_colors_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, m_colors_buffer);
     glBufferData(GL_ARRAY_BUFFER,
@@ -55,10 +57,6 @@ void TrianglePicker::mesh(std::shared_ptr<Mesh> v) noexcept {
             //GL_STATIC_DRAW);
             GL_DYNAMIC_DRAW);
 
-
-    glBindVertexArray(vao());
-
-    glBindBuffer(GL_ARRAY_BUFFER, m_colors_buffer);
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
@@ -114,14 +112,6 @@ void TrianglePicker::paint(SegmentCollider ray, glm::vec3 _color) {
                 }
             }
         }
-
-        //if (triangle_id > -1) {
-            //glm::vec3 trinagle_normal = glm::normalize(glm::cross(point2 - point1, point0 - point1));
-            //glm::vec3 ray_normal = glm::normalize(ray.startPoint() - ray.endPoint());
-            //if (glm::dot(ray_normal, trinagle_normal) > 0) {
-                //changeTriangleColor(triangle_index, _color);
-            //}
-        //}
     }
 
     if (nearist_triangle_id > -1) {
