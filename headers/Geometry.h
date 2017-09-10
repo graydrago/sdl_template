@@ -13,8 +13,7 @@ class Geometry {
     private:
         std::vector<float> m_vertices;
         std::vector<float> m_normals;
-        std::vector<int> m_verticesIndeces;
-        std::vector<int> m_normalsIndeces;
+        std::vector<int> m_indices;
         std::string m_fileName;
 
     public:
@@ -26,7 +25,6 @@ class Geometry {
 
         std::vector<float>& vertices() { return m_vertices; }
         std::vector<float>& normals() { return m_normals; }
-        std::vector<int>& verticesIndeces() { return m_verticesIndeces; }
-        std::vector<int>& normalsIndeces() { return m_normalsIndeces; }
+        std::vector<int>& indices() { return m_indices; }
         std::string& fileName() { return m_fileName; }
 };

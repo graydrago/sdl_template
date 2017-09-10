@@ -7,12 +7,12 @@ function(add_flag flag)
 endfunction()
 
 include_directories("third_parties/glm")
+include_directories("third_parties/json/src")
 set(SOURCE_EXE
   ./src/utils.cpp ./src/ShaderProgram.cpp ./src/Geometry.cpp
   ./src/Model.cpp ./src/Camera.cpp ./src/Mesh.cpp
   ./src/Object.cpp ./src/Game.cpp ./src/PlayMusic.cpp
-  ./src/Collider.cpp ./src/custom/TrianglePicker.cpp ./src/Line.cpp
-  main.cpp )
+  ./src/Collider.cpp ./src/Line.cpp main.cpp)
 
 add_executable( ${PROJECT_NAME} ${SOURCE_EXE} )
 
@@ -55,6 +55,6 @@ else()
           "${CMAKE_BINARY_DIR}/assets")
 
 
-  target_link_libraries( ${PROJECT_NAME} SDL2 SDL2_mixer GL GLEW assimp)
+  target_link_libraries( ${PROJECT_NAME} SDL2 SDL2_mixer GL GLEW)
 endif()
 

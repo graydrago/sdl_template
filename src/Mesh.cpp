@@ -10,12 +10,12 @@ void Mesh::load(std::string geometryFileName) {
 
     m_geometry.load(geometryFileName);
 
-    for (auto item : m_geometry.verticesIndeces()) {
+    for (auto item : m_geometry.indices()) {
         vertices.push_back(m_geometry.vertices()[item * 3 ]);
         vertices.push_back(m_geometry.vertices()[item * 3 + 1]);
         vertices.push_back(m_geometry.vertices()[item * 3 + 2]);
     }
-    for (auto item : m_geometry.verticesIndeces()) {
+    for (auto item : m_geometry.indices()) {
         normals.push_back(m_geometry.normals()[item * 3 ]);
         normals.push_back(m_geometry.normals()[item * 3 + 1]);
         normals.push_back(m_geometry.normals()[item * 3 + 2]);

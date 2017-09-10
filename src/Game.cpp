@@ -37,7 +37,6 @@
 #include "../headers/PlayMusic.h"
 #include "../headers/SegmentCollider.h"
 #include "../headers/SphereCollider.h"
-#include "../headers/custom/TrianglePicker.h"
 
 
 Game::Game() {
@@ -46,7 +45,7 @@ Game::Game() {
     m_screen_height = 768;
     m_fov_angle = 60.f;
     m_near_plane = 0.001f;
-    m_far_plane = 10.f;
+    m_far_plane = 1000.f;
     camera = std::make_shared<Camera>();
 }
 
@@ -71,8 +70,6 @@ void Game::init() {
     }
 
     #ifdef __EMSCRIPTEN__
-    //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     #else
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
@@ -89,7 +86,7 @@ void Game::init() {
         "Template",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         m_screen_width, m_screen_height,
-        SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_INPUT_GRABBED);
+        SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE );
     if (window == nullptr) {
         auto err_text = std::string("Unable to create window: ") + SDL_GetError();
         throw new std::runtime_error(err_text);
@@ -134,24 +131,12 @@ void Game::run() {
         shader->link();
         cache("basic", shader);
     }
-    //{
-        //auto shader = std::make_shared<ShaderProgram>();
-        //shader->compile("./assets/onePointLight.frag", GL_FRAGMENT_SHADER);
-        //shader->compile("./assets/onePointLightTP.vert", GL_VERTEX_SHADER);
-        //shader->link();
-        //cache("one_point_light_tp", shader);
-    //}
     {
         auto shader = std::make_shared<ShaderProgram>();
         shader->compile("./assets/onePointLight.frag", GL_FRAGMENT_SHADER);
         shader->compile("./assets/onePointLight.vert", GL_VERTEX_SHADER);
         shader->link();
         cache("one_point_light", shader);
-    }
-    {
-        std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
-        mesh->load("./assets/models/monkey.obj");
-        cache("monkey", mesh);
     }
     {
         auto mesh = std::make_shared<Mesh>();
@@ -171,12 +156,7 @@ void Game::run() {
     }
     {
         std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
-        mesh->load("./assets/models/cube2.obj");
-        cache("cube", mesh);
-    }
-    {
-        std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
-        mesh->load("./assets/models/sphere.obj");
+        mesh->load("./assets/models/sphere.json");
         cache("sphere", mesh);
     }
 
@@ -193,9 +173,9 @@ void Game::run() {
     camera->position({0, 0, 0.5});
     scene_list.push_back(camera);
 
-    for (int i = -1; i <= 1; i++) {
-        for (int j = -1; j <= 1; j++) {
-            for (int k = -1; k <= 1; k++) {
+    for (int i = -3; i <= 3; i++) {
+        for (int j = -3; j <= 3; j++) {
+            for (int k = -3; k <= 3; k++) {
                 auto cube = std::make_shared<Model>();
                 cube->color(glm::vec3(random(rd), random(rd), random(rd)));
                 cube->mesh(mesh("sphere"));
@@ -207,7 +187,7 @@ void Game::run() {
                     if (!game.control.fire) return;
 
                     auto collider = std::static_pointer_cast<SphereCollider>(m.collider());
-                    auto& model = static_cast<TrianglePicker&>(m);
+                    auto& model = static_cast<Model&>(m);
                     bool has_intersection = testIntersection(game.aimRay(), *collider);
                     if (has_intersection) {
                         auto obj = game.bag("neares_model");
@@ -422,7 +402,7 @@ void Game::loop() noexcept {
             glm::vec4(0.f, 0.f, m_screen_width, m_screen_height));
 
     m_aim_ray = SegmentCollider(ray_start, ray_end);
-    m_light_position = glm::vec3(camera->position().x, camera->position().y, camera->position().z);
+    //m_light_position = glm::vec3(camera->position().x, camera->position().y, camera->position().z);
 
     for (auto item : scene_list) {
         item->update(elapsed_seconds);
@@ -430,8 +410,8 @@ void Game::loop() noexcept {
 
     auto model_at_gunpoint = bag("neares_model");
     if (model_at_gunpoint != nullptr) {
-        auto tmp = static_cast<TrianglePicker*>(model_at_gunpoint);
-        tmp->paint(aimRay(), {0, 1, 0});
+        //auto tmp = static_cast<Model*>(model_at_gunpoint);
+        //tmp->paint(aimRay(), {0, 1, 0});
         bag("neares_model", nullptr);
     }
 

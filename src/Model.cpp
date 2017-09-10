@@ -23,7 +23,7 @@ void Model::render(const glm::mat4 &P, const glm::mat4 &V) const noexcept {
 
         glBindVertexArray(m_vao);
         glBindBuffer(GL_ARRAY_BUFFER, m_mesh->vertexBuffer());
-        glDrawArrays(GL_TRIANGLES, 0, m_mesh->geometry().verticesIndeces().size());
+        glDrawArrays(GL_TRIANGLES, 0, m_mesh->geometry().indices().size());
     }
 }
 
