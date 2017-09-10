@@ -71,8 +71,8 @@ void Game::init() {
     }
 
     #ifdef __EMSCRIPTEN__
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+    //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     #else
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
@@ -127,41 +127,26 @@ void Game::init() {
 
 
 void Game::run() {
-    //{
-        //auto shader = std::make_shared<ShaderProgram>();
-        //#ifdef __EMSCRIPTEN__
-        //shader->compile("./assets/es2/es_onePointLight.frag", GL_FRAGMENT_SHADER);
-        //shader->compile("./assets/es2/es_onePointLight.vert", GL_VERTEX_SHADER);
-        //#else
-        //shader->compile("./assets/onePointLight.frag", GL_FRAGMENT_SHADER);
-        //shader->compile("./assets/onePointLight.vert", GL_VERTEX_SHADER);
-        //#endif
-        //shader->link();
-        //cache("one_point_light", shader);
-    //}
     {
         auto shader = std::make_shared<ShaderProgram>();
-        #ifdef __EMSCRIPTEN__
-        shader->compile("./assets/es2/es_basic.frag", GL_FRAGMENT_SHADER);
-        shader->compile("./assets/es2/es_basic.vert", GL_VERTEX_SHADER);
-        #else
         shader->compile("./assets/basic.frag", GL_FRAGMENT_SHADER);
         shader->compile("./assets/basic.vert", GL_VERTEX_SHADER);
-        #endif
         shader->link();
         cache("basic", shader);
     }
+    //{
+        //auto shader = std::make_shared<ShaderProgram>();
+        //shader->compile("./assets/onePointLight.frag", GL_FRAGMENT_SHADER);
+        //shader->compile("./assets/onePointLightTP.vert", GL_VERTEX_SHADER);
+        //shader->link();
+        //cache("one_point_light_tp", shader);
+    //}
     {
         auto shader = std::make_shared<ShaderProgram>();
-        #ifdef __EMSCRIPTEN__
-        shader->compile("./assets/es2/es_onePointLight.frag", GL_FRAGMENT_SHADER);
-        shader->compile("./assets/es2/es_onePointLightTP.vert", GL_VERTEX_SHADER);
-        #else
         shader->compile("./assets/onePointLight.frag", GL_FRAGMENT_SHADER);
-        shader->compile("./assets/onePointLightTP.vert", GL_VERTEX_SHADER);
-        #endif
+        shader->compile("./assets/onePointLight.vert", GL_VERTEX_SHADER);
         shader->link();
-        cache("one_point_light_tp", shader);
+        cache("one_point_light", shader);
     }
     {
         std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
@@ -189,6 +174,11 @@ void Game::run() {
         mesh->load("./assets/models/cube2.obj");
         cache("cube", mesh);
     }
+    {
+        std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
+        mesh->load("./assets/models/sphere.obj");
+        cache("sphere", mesh);
+    }
 
     std::random_device rd;
     std::uniform_real_distribution<double> random(0.0, 1.0);
@@ -206,10 +196,10 @@ void Game::run() {
     for (int i = -1; i <= 1; i++) {
         for (int j = -1; j <= 1; j++) {
             for (int k = -1; k <= 1; k++) {
-                auto cube = std::make_shared<TrianglePicker>();
+                auto cube = std::make_shared<Model>();
                 cube->color(glm::vec3(random(rd), random(rd), random(rd)));
-                cube->mesh(mesh("monkey"));
-                cube->shader(shader("one_point_light_tp"));
+                cube->mesh(mesh("sphere"));
+                cube->shader(shader("one_point_light"));
                 cube->position({i, j, k});
                 cube->scale({0.1f, 0.1f, 0.1f});
                 cube->updateCb([](Object& m, float) {

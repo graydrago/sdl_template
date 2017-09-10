@@ -15,11 +15,15 @@ void Mesh::load(std::string geometryFileName) {
         vertices.push_back(m_geometry.vertices()[item * 3 + 1]);
         vertices.push_back(m_geometry.vertices()[item * 3 + 2]);
     }
-    for (auto item : m_geometry.normalsIndeces()) {
+    for (auto item : m_geometry.verticesIndeces()) {
         normals.push_back(m_geometry.normals()[item * 3 ]);
         normals.push_back(m_geometry.normals()[item * 3 + 1]);
         normals.push_back(m_geometry.normals()[item * 3 + 2]);
     }
+
+    std::cout << "geometry file name: " << geometryFileName << std::endl;
+    std::cout << "vertices: " << vertices.size() << std::endl;
+    std::cout << "normals: " << normals.size() << std::endl;
 
     makeVertexBuffer(vertices);
     makeNormalBuffer(normals);

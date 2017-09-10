@@ -1,50 +1,49 @@
 #include <sstream>
+#include <SDL2/SDL_log.h>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 #include "../headers/Geometry.h"
 #include "../headers/utils.h"
 
-void Geometry::load(std::string fileName) {
-    //TODO Add error handling
-    using std::getline;
-    using std::string;
-    using std::istringstream;
-
+bool Geometry::load(std::string fileName) {
     this->m_fileName = fileName;
 
-    auto file_strings = loadTextFile(fileName);
-    istringstream file(file_strings);
-    string line;
+    Assimp::Importer importer;
+    const aiScene *scene = importer.ReadFile(fileName,
+        aiProcess_CalcTangentSpace |
+        aiProcess_Triangulate |
+        aiProcess_JoinIdenticalVertices |
+        aiProcess_SortByPType);
 
-    while (getline(file, line)) {
-        string type;
-        istringstream line_stream(line);
+    if (!scene) {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", importer.GetErrorString());
+        return false;
+    }
 
-        getline(line_stream, type, ' ');
-        if ("v" == type) {
-            string num;
-            while (getline(line_stream, num, ' ')) {
-                m_vertices.push_back(::atof(num.c_str()));
-            }
-        } else if ("vn" == type) {
-            string num;
-            while (getline(line_stream, num, ' ')) {
-                m_normals.push_back(::atof(num.c_str()));
-            }
-        } else if ("f" == type) {
-            string pack;
-            while (getline(line_stream, pack, ' ')) {
-                int pos = pack.find('/');
-                string vertex_index_str = pack.substr(0, pos);
-                if (pack[pos] != pack[pos+1]) {
-                  // TODO Textures
-                } else {
-                  pos += 2;
-                }
-                string normal_index_str = pack.substr(pos, pack.length());
+    auto mesh = scene->mMeshes[0];
 
-                m_verticesIndeces.push_back(::atoi(vertex_index_str.c_str()) - 1);
-                m_normalsIndeces.push_back(::atof(normal_index_str.c_str()) - 1);
-            }
+    m_vertices.reserve(mesh->mNumVertices * 3);
+    m_normals.reserve(mesh->mNumVertices * 3);
+    m_verticesIndeces.reserve(mesh->mNumFaces * 3);
+    for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
+        auto v = mesh->mVertices[i];
+        m_vertices.push_back(v.x);
+        m_vertices.push_back(v.y);
+        m_vertices.push_back(v.z);
+        auto n = mesh->mNormals[i];
+        m_normals.push_back(n.x);
+        m_normals.push_back(n.y);
+        m_normals.push_back(n.z);
+    }
+
+    for (unsigned int i = 0; i < mesh->mNumFaces; ++i) {
+        auto f = mesh->mFaces[i];
+        for (unsigned int j = 0; j < f.mNumIndices; ++j) {
+            m_verticesIndeces.push_back(f.mIndices[j]);
         }
     }
+
+    return true;
 }

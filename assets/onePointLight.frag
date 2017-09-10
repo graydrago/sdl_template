@@ -1,9 +1,11 @@
-#version 430
+#version 300 es
+precision highp int;
+precision highp float;
 
-out vec4 FragColor;
+out highp vec4 FragColor;
 
-in vec3 ModelColor;
+in highp vec4 ModelColor;
 
 void main () {
-    FragColor = vec4(ModelColor, 1.0);
+    FragColor = ModelColor;
 }

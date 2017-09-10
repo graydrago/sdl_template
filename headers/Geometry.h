@@ -20,7 +20,7 @@ class Geometry {
     public:
         Geometry() {};
         virtual ~Geometry() {};
-        void load(std::string fileName);
+        bool load(std::string fileName);
 
         void vertices(std::vector<float> v) { m_vertices = v; }
 

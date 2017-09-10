@@ -6,13 +6,15 @@ function(add_flag flag)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}" PARENT_SCOPE)
 endfunction()
 
-include_directories("./include/glm")
+include_directories("third_parties/glm")
 set(SOURCE_EXE
   ./src/utils.cpp ./src/ShaderProgram.cpp ./src/Geometry.cpp
   ./src/Model.cpp ./src/Camera.cpp ./src/Mesh.cpp
   ./src/Object.cpp ./src/Game.cpp ./src/PlayMusic.cpp
   ./src/Collider.cpp ./src/custom/TrianglePicker.cpp ./src/Line.cpp
   main.cpp )
+
+add_executable( ${PROJECT_NAME} ${SOURCE_EXE} )
 
 # common flags
 add_flag("-std=c++11")
@@ -25,15 +27,19 @@ if(EMSCRIPTEN)
   message("Emscripten Build")
   set(CMAKE_EXECUTABLE_SUFFIX ".html")
   add_flag("-s USE_SDL=2")
+  add_flag("-s USE_WEBGL2=1")
   #add_flag("-s SIMD=1")
   add_flag("-s WASM=1")
   add_flag("-s ALLOW_MEMORY_GROWTH=1")
   add_flag("-s USE_OGG=1")
   add_flag("-s USE_VORBIS=1")
+  add_flag("-s ASSERTIONS=1")
+  add_flag("-s ERROR_ON_UNDEFINED_SYMBOLS=1")
   add_flag("-s DISABLE_EXCEPTION_CATCHING=2")
   add_flag("--emrun")
   add_flag("--preload-file ../assets@/assets/")
   add_flag("-O2")
+  target_link_libraries( ${PROJECT_NAME} GL GLEW)
 else()
   message("Linux Build")
 
@@ -48,9 +54,7 @@ else()
           "${CMAKE_SOURCE_DIR}/assets"
           "${CMAKE_BINARY_DIR}/assets")
 
+
+  target_link_libraries( ${PROJECT_NAME} SDL2 SDL2_mixer GL GLEW assimp)
 endif()
-
-
-add_executable( ${PROJECT_NAME} ${SOURCE_EXE} )
-target_link_libraries( ${PROJECT_NAME} SDL2 SDL2_mixer GL GLEW )
 

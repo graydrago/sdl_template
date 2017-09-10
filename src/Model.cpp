@@ -43,6 +43,7 @@ void Model::mesh(std::shared_ptr<Mesh> v) noexcept {
       glBindBuffer(GL_ARRAY_BUFFER, m_mesh->normalBuffer());
       glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
       glEnableVertexAttribArray(1);
+      gl_check_error();
     }
 
     glBindVertexArray(0);

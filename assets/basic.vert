@@ -1,4 +1,6 @@
-#version 430
+#version 300 es
+precision highp int;
+precision highp float;
 
 layout (location=0) in vec3 VertexPosition;
 
