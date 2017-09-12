@@ -46,7 +46,7 @@ Game::Game() {
     m_fov_angle = 60.f;
     m_near_plane = 0.001f;
     m_far_plane = 1000.f;
-    camera = std::make_shared<Camera>();
+    m_camera = std::make_shared<Camera>();
 }
 
 
@@ -116,7 +116,8 @@ void Game::init() {
     glEnable(GL_DEPTH_TEST);
     gl_info();
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    m_light_position = glm::vec3(0.0, 10.0, 10.0);
+    m_light = std::make_shared<Light>();
+    m_light->position({0.0, 10.0, 10.0});
 
     SDL_SetRelativeMouseMode(SDL_TRUE);
     SDL_GetWindowDisplayMode(window, &m_window_display_mode);
@@ -156,6 +157,11 @@ void Game::run() {
     }
     {
         std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
+        mesh->load("./assets/models/smooth_monkey.json");
+        cache("monkey", mesh);
+    }
+    {
+        std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
         mesh->load("./assets/models/sphere.json");
         cache("sphere", mesh);
     }
@@ -169,16 +175,16 @@ void Game::run() {
 
     std::srand(std::chrono::system_clock::now().time_since_epoch().count());
 
-    camera->updateCb(std::bind(&Game::fpsControlCamera, this, std::placeholders::_1, std::placeholders::_2));
-    camera->position({0, 0, 0.5});
-    scene_list.push_back(camera);
+    m_camera->updateCb(std::bind(&Game::fpsControlCamera, this, std::placeholders::_1, std::placeholders::_2));
+    m_camera->position({0, 0, 0.5});
+    scene_list.push_back(m_camera);
 
-    for (int i = -3; i <= 3; i++) {
-        for (int j = -3; j <= 3; j++) {
-            for (int k = -3; k <= 3; k++) {
+    for (int i = -2; i <= 2; i++) {
+        for (int j = -2; j <= 2; j++) {
+            for (int k = -2; k <= 2; k++) {
                 auto cube = std::make_shared<Model>();
                 cube->color(glm::vec3(random(rd), random(rd), random(rd)));
-                cube->mesh(mesh("sphere"));
+                cube->mesh(mesh("monkey"));
                 cube->shader(shader("one_point_light"));
                 cube->position({i, j, k});
                 cube->scale({0.1f, 0.1f, 0.1f});
@@ -277,17 +283,17 @@ void Game::loop() noexcept {
                     }
                     case SDLK_LSHIFT:
                     {
-                        camera->speed(0.05);
+                        m_camera->speed(0.05);
                         break;
                     }
                     case SDLK_1:
                     {
-                        camera->updateCb(std::bind(&Game::fpsControlCamera, this, std::placeholders::_1, std::placeholders::_2));
+                        m_camera->updateCb(std::bind(&Game::fpsControlCamera, this, std::placeholders::_1, std::placeholders::_2));
                         break;
                     }
                     case SDLK_2:
                     {
-                        camera->updateCb(std::bind(&Game::freeControlCamera, this, std::placeholders::_1, std::placeholders::_2));
+                        m_camera->updateCb(std::bind(&Game::freeControlCamera, this, std::placeholders::_1, std::placeholders::_2));
                         break;
                     }
                 }
@@ -319,11 +325,11 @@ void Game::loop() noexcept {
                     }
                     case SDLK_LSHIFT:
                     {
-                        camera->speed(0.01);
+                        m_camera->speed(0.01);
                         break;
                     }
                 }
-                if (event.key.keysym.mod == KMOD_SHIFT) { camera->speed(0.05); }
+                if (event.key.keysym.mod == KMOD_SHIFT) { m_camera->speed(0.05); }
                 break;
             }
 
@@ -384,7 +390,7 @@ void Game::loop() noexcept {
     last_frame_time = elapsed_since_start_program;
 
 
-    m_view_matrix = camera->eye();
+    m_view_matrix = m_camera->eye();
     m_projection_matrix = glm::perspective(
         m_screen_height < m_screen_width ? (float)m_screen_height/(float)m_screen_width : aspectRatio(),
         aspectRatio(),
@@ -445,8 +451,8 @@ void Game::fpsControlCamera(Object& _c, float) {
         c.position(step);
     }
 
-    if (control.xrel != 0) { c.yaw(c.yaw() + control.xrel / 2); }
-    if (control.yrel != 0) { c.pitch(c.pitch() + control.yrel / 2); }
+    if (control.xrel != 0) { c.yaw(c.yaw() + control.xrel / 5); }
+    if (control.yrel != 0) { c.pitch(c.pitch() + control.yrel / 5); }
 };
 
 

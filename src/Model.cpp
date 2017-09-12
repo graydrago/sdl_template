@@ -2,6 +2,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "../headers/Camera.h"
 #include "../headers/Game.h"
 #include "../headers/Model.h"
 #include "../headers/Mesh.h"
@@ -16,7 +17,15 @@ void Model::render(const glm::mat4 &P, const glm::mat4 &V) const noexcept {
 
         m_shaderProgram->use();
         m_shaderProgram->setUniform("Color", color());
-        m_shaderProgram->setUniform("LightPosition", Game::instance().lightPosition());
+        m_shaderProgram->setUniform("light.position", Game::instance().light()->position());
+        m_shaderProgram->setUniform("light.ambient", Game::instance().light()->ambient());
+        m_shaderProgram->setUniform("light.diffuse", Game::instance().light()->diffuse());
+        m_shaderProgram->setUniform("light.specular", Game::instance().light()->specular());
+        m_shaderProgram->setUniform("material.ambient", ambient());
+        m_shaderProgram->setUniform("material.diffuse", diffuse());
+        m_shaderProgram->setUniform("material.specular", specular());
+        m_shaderProgram->setUniform("material.shininess", shininess());
+        m_shaderProgram->setUniform("CameraPosition", Game::instance().camera()->position());
         m_shaderProgram->setUniform("PVM", PVM);
         m_shaderProgram->setUniform("VM", wt);
         m_shaderProgram->setUniform("NM", NM);
@@ -26,7 +35,6 @@ void Model::render(const glm::mat4 &P, const glm::mat4 &V) const noexcept {
         glDrawArrays(GL_TRIANGLES, 0, m_mesh->geometry().indices().size());
     }
 }
-
 
 
 void Model::mesh(std::shared_ptr<Mesh> v) noexcept {

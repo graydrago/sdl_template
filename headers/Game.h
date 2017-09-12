@@ -9,6 +9,7 @@
 
 #include "../headers/Control.h"
 #include "../headers/Line.h"
+#include "../headers/Light.h"
 #include "../headers/SegmentCollider.h"
 
 class Object;
@@ -30,9 +31,8 @@ class Game {
         float m_fov_angle;
         float m_near_plane;
         float m_far_plane;
-        glm::vec3 m_light_position;
-        SegmentCollider m_aim_ray;
 
+        SegmentCollider m_aim_ray;
         glm::mat4 m_view_matrix;
         glm::mat4 m_projection_matrix;
 
@@ -41,7 +41,8 @@ class Game {
         //std::map<std::string, std::vector<std::shared_ptr<Object>>> scene_groups;
         
         std::map<std::string, Object*> m_bag;
-        std::shared_ptr<Camera> camera;
+        std::shared_ptr<Camera> m_camera;
+        std::shared_ptr<Light> m_light;
         std::map<std::string, std::shared_ptr<ShaderProgram>> m_shaders_list;
         std::map<std::string, std::shared_ptr<Mesh>> m_mesh_list;
 
@@ -60,7 +61,8 @@ class Game {
         void run();
         void loop() noexcept;
 
-        glm::vec3 lightPosition() { return m_light_position; }
+        std::shared_ptr<Light> light() { return m_light; }
+        std::shared_ptr<Camera> camera() { return m_camera; }
 
         void fpsControlCamera(Object& _c, float);
         void freeControlCamera(Object& _c, float);
