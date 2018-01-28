@@ -7,22 +7,22 @@
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
 #include <memory>
-#include <random>
 
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 #include <glm/gtx/polar_coordinates.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#ifdef __EMSCRIPTEN__
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
-#include <emscripten.h>
-#include <SDL/SDL_mixer.h>
-#else
 #include <GL/gl.h>
 #include <GL/glext.h>
-#include <SDL2/SDL_mixer.h>
+#ifdef __EMSCRIPTEN__
+//#include <EGL/egl.h>
+//#include <EGL/eglext.h>
+#include <emscripten.h>
+#include <emscripten/html5.h>
+//#include <SDL/SDL_mixer.h>
+#else
+//#include <SDL2/SDL_mixer.h>
 #endif
 
 #include "../headers/utils.h"
@@ -37,6 +37,9 @@
 #include "../headers/PlayMusic.h"
 #include "../headers/SegmentCollider.h"
 #include "../headers/SphereCollider.h"
+
+#include "../samples/Sample1.cpp"
+#include "../samples/Sample2.cpp"
 
 
 Game::Game() {
@@ -82,6 +85,10 @@ void Game::init() {
     SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 6);
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
 
+
+    #ifdef __EMSCRIPTEN__
+    emscripten_get_canvas_element_size(nullptr, &m_screen_width, &m_screen_height);
+    #endif
     window = SDL_CreateWindow(
         "Template",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -92,9 +99,9 @@ void Game::init() {
         throw new std::runtime_error(err_text);
     }
 
-    #ifdef TEST_SDL_LOCK_OPTS
-    EM_ASM("SDL.defaults.copyOnLock = false; SDL.defaults.discardOnLock = true; SDL.defaults.opaqueFrontBuffer = false;");
-    #endif
+    //#ifdef TEST_SDL_LOCK_OPTS
+    //EM_ASM("SDL.defaults.copyOnLock = false; SDL.defaults.discardOnLock = true; SDL.defaults.opaqueFrontBuffer = false;");
+    //#endif
 
     context = SDL_GL_CreateContext(window);
     if (context == nullptr) {
@@ -125,106 +132,19 @@ void Game::init() {
 
 
 void Game::run() {
-    {
-        auto shader = std::make_shared<ShaderProgram>();
-        shader->compile("./assets/basic.frag", GL_FRAGMENT_SHADER);
-        shader->compile("./assets/basic.vert", GL_VERTEX_SHADER);
-        shader->link();
-        cache("basic", shader);
-    }
-    {
-        auto shader = std::make_shared<ShaderProgram>();
-        shader->compile("./assets/onePointLight.frag", GL_FRAGMENT_SHADER);
-        shader->compile("./assets/onePointLight.vert", GL_VERTEX_SHADER);
-        shader->link();
-        cache("one_point_light", shader);
-    }
-    {
-        auto mesh = std::make_shared<Mesh>();
-        std::vector<GLfloat> v(6, 0.f);
-        mesh->makeVertexBuffer(v);
-
-        auto shape = std::make_shared<Line>();
-        shape->mesh(mesh);
-        shape->shader(shader("basic"));
-        shape->color({1.f, 0.f, 0.f});
-        shape->updateCb([](Object &m, float) {
-            auto& line = static_cast<Line&>(m);
-            auto& game = Game::instance();
-            line.changePoints(game.aimRay().startPoint(), game.aimRay().endPoint());
-        });
-        scene_list.push_back(shape);
-    }
-    {
-        std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
-        mesh->load("./assets/models/smooth_monkey.json");
-        cache("monkey", mesh);
-    }
-    {
-        std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
-        mesh->load("./assets/models/sphere.json");
-        cache("sphere", mesh);
-    }
-
-    std::random_device rd;
-    std::uniform_real_distribution<double> random(0.0, 1.0);
-
-    //PlayMusic music;
-    //music.load("./assets/music/The Endless Cycle.ogg");
-    //music.play();
-
-    std::srand(std::chrono::system_clock::now().time_since_epoch().count());
-
     m_camera->updateCb(std::bind(&Game::fpsControlCamera, this, std::placeholders::_1, std::placeholders::_2));
     m_camera->position({0, 0, 0.5});
     scene_list.push_back(m_camera);
 
-    for (int i = -2; i <= 2; i++) {
-        for (int j = -2; j <= 2; j++) {
-            for (int k = -2; k <= 2; k++) {
-                auto cube = std::make_shared<Model>();
-                cube->color(glm::vec3(random(rd), random(rd), random(rd)));
-                cube->mesh(mesh("monkey"));
-                cube->shader(shader("one_point_light"));
-                cube->position({i, j, k});
-                cube->scale({0.1f, 0.1f, 0.1f});
-                cube->updateCb([](Object& m, float) {
-                    auto& game = Game::instance();
-                    if (!game.control.fire) return;
-
-                    auto collider = std::static_pointer_cast<SphereCollider>(m.collider());
-                    auto& model = static_cast<Model&>(m);
-                    bool has_intersection = testIntersection(game.aimRay(), *collider);
-                    if (has_intersection) {
-                        auto obj = game.bag("neares_model");
-                        if (obj == nullptr) {
-                            game.bag("neares_model", &model);
-                        } else {
-                            auto start_point = game.aimRay().startPoint();
-                            auto dist_saved = obj->position() - start_point ;
-                            auto dist_model = model.position() - start_point ;
-                            if (glm::dot(dist_model, dist_model) < glm::dot(dist_saved, dist_saved)) {
-                                game.bag("neares_model", &model);
-                            }
-                        }
-                    }
-                });
-
-                auto collider = std::make_shared<SphereCollider>();
-                collider->center({i, j, k});
-                collider->radius(0.1f);
-                cube->collider(collider);
-                scene_list.push_back(cube);
-            }
-        }
-    }
+    m_sample = std::make_unique<Sample2>(*this);
+    m_sample->init();
 
     #ifdef __EMSCRIPTEN__
-      emscripten_set_main_loop([]() { Game::instance().loop(); }, 0, 1);
+        emscripten_set_main_loop([]() { Game::instance().loop(); }, 0, 1);
     #else
-      while (control.play) {
-          loop();
-      }
+        while (control.play) {
+            loop();
+        }
     #endif
 }
 
@@ -370,16 +290,13 @@ void Game::loop() noexcept {
                 break;
             }
 
-            case SDL_WINDOWEVENT:
-                switch (event.window.event) {
-                    case SDL_WINDOWEVENT_RESIZED:
-                    {
-                        m_screen_width = event.window.data1;
-                        m_screen_height = event.window.data2;
-                        glViewport(0, 0, m_screen_width, m_screen_height);
-                    }
-                    break;
-                }
+            //case SDL_WINDOWEVENT:
+                //switch (event.window.event) {
+                    //case SDL_WINDOWEVENT_RESIZED:
+                    //{
+                    //}
+                    //break;
+                //}
         }
     }
 
@@ -389,6 +306,18 @@ void Game::loop() noexcept {
     float elapsed_seconds = (float) elapsed_since_last_frame * 0.001;
     last_frame_time = elapsed_since_start_program;
 
+    {
+          double width, height;
+          auto r = emscripten_get_element_css_size("canvas-owner", &width, &height);
+          if (r == EMSCRIPTEN_RESULT_SUCCESS) {
+              if (m_screen_width != static_cast<int>(width) || m_screen_height != static_cast<int>(height)) {
+                  m_screen_width = width;
+                  m_screen_height = height;
+                  SDL_SetWindowSize(window, m_screen_width, m_screen_height);
+                  glViewport(0, 0, m_screen_width, m_screen_height);
+              }
+          }
+    }
 
     m_view_matrix = m_camera->eye();
     m_projection_matrix = glm::perspective(
@@ -413,17 +342,19 @@ void Game::loop() noexcept {
     for (auto item : scene_list) {
         item->update(elapsed_seconds);
     }
+    m_sample->update(elapsed_seconds);
 
-    auto model_at_gunpoint = bag("neares_model");
-    if (model_at_gunpoint != nullptr) {
+    //auto model_at_gunpoint = bag("neares_model");
+    //if (model_at_gunpoint != nullptr) {
         //auto tmp = static_cast<Model*>(model_at_gunpoint);
         //tmp->paint(aimRay(), {0, 1, 0});
-        bag("neares_model", nullptr);
-    }
+        //bag("neares_model", nullptr);
+    //}
 
     for (auto item : scene_list) {
         item->render(m_projection_matrix, m_view_matrix);
     }
+    m_sample->render();
 
     SDL_GL_SwapWindow(window);
 }
@@ -451,8 +382,8 @@ void Game::fpsControlCamera(Object& _c, float) {
         c.position(step);
     }
 
-    if (control.xrel != 0) { c.yaw(c.yaw() + control.xrel / 5); }
-    if (control.yrel != 0) { c.pitch(c.pitch() + control.yrel / 5); }
+    if (control.xrel != 0) { c.yaw(c.yaw() + control.xrel / 5.0); }
+    if (control.yrel != 0) { c.pitch(c.pitch() + control.yrel / 5.0); }
 };
 
 

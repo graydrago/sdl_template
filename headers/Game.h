@@ -11,6 +11,7 @@
 #include "../headers/Line.h"
 #include "../headers/Light.h"
 #include "../headers/SegmentCollider.h"
+#include "../headers/Sample.h"
 
 class Object;
 class Camera;
@@ -33,11 +34,7 @@ class Game {
         float m_far_plane;
 
         SegmentCollider m_aim_ray;
-        glm::mat4 m_view_matrix;
-        glm::mat4 m_projection_matrix;
 
-        Control control;
-        std::vector<std::shared_ptr<Object>> scene_list;
         //std::map<std::string, std::vector<std::shared_ptr<Object>>> scene_groups;
         
         std::map<std::string, Object*> m_bag;
@@ -49,9 +46,16 @@ class Game {
         SDL_Window *window;
         SDL_GLContext context;
 
+        std::unique_ptr<Sample> m_sample;
+
         Game();
 
     public:
+        glm::mat4 m_view_matrix;
+        glm::mat4 m_projection_matrix;
+        std::vector<std::shared_ptr<Object>> scene_list;
+        Control control;
+
         // have to make a singleton for emscripten_set_main_loop supports
         Game(Game const&) = delete;
         static Game& instance() { static Game instance; return instance; }

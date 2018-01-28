@@ -6,7 +6,6 @@ function(add_flag flag)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}" PARENT_SCOPE)
 endfunction()
 
-include_directories("third_parties/glm")
 include_directories("third_parties/json/src")
 set(SOURCE_EXE
   ./src/utils.cpp ./src/ShaderProgram.cpp ./src/Geometry.cpp
@@ -17,17 +16,24 @@ set(SOURCE_EXE
 add_executable( ${PROJECT_NAME} ${SOURCE_EXE} )
 
 # common flags
-add_flag("-std=c++11")
+add_flag("-std=c++14")
 add_flag("-Wall")
 #add_flag("-v")
 
 # Sorry, but I support linux and emscripten builds only, because I have a
 # lack of time for my home projects.
 if(EMSCRIPTEN)
+  include_directories("third_parties/glm")
+
   message("Emscripten Build")
   set(CMAKE_EXECUTABLE_SUFFIX ".html")
+  add_flag("-s USE_ZLIB=1")
+  add_flag("-s USE_LIBPNG=1")
   add_flag("-s USE_SDL=2")
+  add_flag("-s USE_SDL_IMAGE=2")
+  add_flag("-s SDL2_IMAGE_FORMATS=\"['png']\"")
   add_flag("-s USE_WEBGL2=1")
+  add_flag("-s FULL_ES2=1")
   #add_flag("-s SIMD=1")
   add_flag("-s WASM=1")
   add_flag("-s ALLOW_MEMORY_GROWTH=1")
@@ -36,6 +42,7 @@ if(EMSCRIPTEN)
   add_flag("-s ASSERTIONS=1")
   add_flag("-s ERROR_ON_UNDEFINED_SYMBOLS=1")
   add_flag("-s DISABLE_EXCEPTION_CATCHING=2")
+  add_flag("--shell-file ../raw_assets/html/shell.html")
   add_flag("--no-heap-copy")
   add_flag("--emrun")
   add_flag("--preload-file ../assets@/assets/")
@@ -56,6 +63,6 @@ else()
           "${CMAKE_BINARY_DIR}/assets")
 
 
-  target_link_libraries( ${PROJECT_NAME} SDL2 SDL2_mixer GL GLEW)
+  target_link_libraries( ${PROJECT_NAME} SDL2 SDL2_mixer SDL2_image GL GLEW)
 endif()
 

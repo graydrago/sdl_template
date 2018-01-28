@@ -6,13 +6,14 @@
 Camera::Camera() :
     Object(),
     m_up(0.f, 1.f, 0.f),
-    m_right(glm::cross(m_forward, m_up)),
+    m_right(0.f),
     m_forward(0.f, 0.f, 0.f),
     m_yaw(-90),
     m_pitch(0),
     m_speed(0.01)
 {
     position(glm::vec3(0.f, 0.f, 2.f));
+    m_right = glm::cross(m_forward, m_up);
 }
 
 
