@@ -15,14 +15,10 @@
 
 #include <GL/gl.h>
 #include <GL/glext.h>
+
 #ifdef __EMSCRIPTEN__
-//#include <EGL/egl.h>
-//#include <EGL/eglext.h>
 #include <emscripten.h>
 #include <emscripten/html5.h>
-//#include <SDL/SDL_mixer.h>
-#else
-//#include <SDL2/SDL_mixer.h>
 #endif
 
 #include "../headers/utils.h"
@@ -77,7 +73,7 @@ void Game::init() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 5);
     #endif
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -99,9 +95,9 @@ void Game::init() {
         throw new std::runtime_error(err_text);
     }
 
-    //#ifdef TEST_SDL_LOCK_OPTS
-    //EM_ASM("SDL.defaults.copyOnLock = false; SDL.defaults.discardOnLock = true; SDL.defaults.opaqueFrontBuffer = false;");
-    //#endif
+    #ifdef TEST_SDL_LOCK_OPTS
+    EM_ASM("SDL.defaults.copyOnLock = false; SDL.defaults.discardOnLock = true; SDL.defaults.opaqueFrontBuffer = false;");
+    #endif
 
     context = SDL_GL_CreateContext(window);
     if (context == nullptr) {
@@ -290,13 +286,14 @@ void Game::loop() noexcept {
                 break;
             }
 
-            //case SDL_WINDOWEVENT:
-                //switch (event.window.event) {
-                    //case SDL_WINDOWEVENT_RESIZED:
-                    //{
-                    //}
-                    //break;
-                //}
+            case SDL_WINDOWEVENT:
+                switch (event.window.event) {
+                    case SDL_WINDOWEVENT_RESIZED:
+                    {
+                        glViewport(0, 0, event.window.data1, event.window.data2);
+                    }
+                    break;
+                }
         }
     }
 
@@ -306,6 +303,8 @@ void Game::loop() noexcept {
     float elapsed_seconds = (float) elapsed_since_last_frame * 0.001;
     last_frame_time = elapsed_since_start_program;
 
+
+    #ifdef __EMSCRIPTEN__
     {
           double width, height;
           auto r = emscripten_get_element_css_size("canvas-owner", &width, &height);
@@ -318,6 +317,7 @@ void Game::loop() noexcept {
               }
           }
     }
+    #endif
 
     m_view_matrix = m_camera->eye();
     m_projection_matrix = glm::perspective(

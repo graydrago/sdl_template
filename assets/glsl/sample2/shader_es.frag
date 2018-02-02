@@ -2,15 +2,23 @@
 precision highp int;
 precision highp float;
 
-out vec4 FragColor;
+in int vPlanetID;
 
-uniform vec3 Color;
-uniform sampler2D tex;
+out vec4 fFragColor;
+
+uniform sampler2D uTex0;
+uniform sampler2D uTex1;
 
 void main () {
-    vec4 t = texture(tex, gl_PointCoord);
+    vec4 t;
+    if (vPlanetID == 0) {
+        vec4 t = texture(uTex0, gl_PointCoord);
+    } else {
+        vec4 t = texture(uTex1, gl_PointCoord);
+    }
+    
     if (t.a < 0.0001) {
       discard;
     }
-    FragColor = t;
+    fFragColor = t;
 }

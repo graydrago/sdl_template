@@ -18,28 +18,23 @@
 
 class Sample2 : public Sample {
     private:
-      SDL_Surface* surface;
-      GLuint texture_id;
-      GLuint pointes_id;
+      std::vector<GLuint> texture_ids;
+      GLuint points_id;
       GLuint vao;
       ShaderProgram shader;
-      int amount_of_points = 100000;
+      int amount_of_points = 500000;
       float point_size = 300.0;
 
     public:
         using Sample::Sample;
 
         virtual ~Sample2() {
-            glDeleteTextures(1, &texture_id);
-            glDeleteBuffers(1, &pointes_id);
-            SDL_FreeSurface(surface);
+            glDeleteTextures(texture_ids.size(), texture_ids.data());
+            glDeleteBuffers(1, &points_id);
         }
 
 
         virtual void init() {
-            // init members
-            texture_id = 0;
-
             glClearColor(0, 0, 0, 1);
             glEnable(GL_BLEND);
             //glEnable(GL_POINT_SMOOTH);
@@ -64,8 +59,8 @@ class Sample2 : public Sample {
 
             // create points cloud
             std::random_device rd;
-            std::uniform_real_distribution<double> random(-100.0, 100.0);
-            std::uniform_real_distribution<double> random_h(0.5, 50.0);
+            std::uniform_real_distribution<double> random(-200.0, 200.0);
+            std::uniform_real_distribution<double> random_h(0.5, 100.0);
             std::srand(std::chrono::system_clock::now().time_since_epoch().count());
             std::vector<glm::vec3> points;
             for (int i = 0; i < amount_of_points; ++i) {
@@ -76,8 +71,8 @@ class Sample2 : public Sample {
             });
 
             //glCreateBuffers(1, &pointes_id); // saved for OpenGL 4.5
-            glGenBuffers(1, &pointes_id);
-            glBindBuffer(GL_ARRAY_BUFFER, pointes_id);
+            glGenBuffers(1, &points_id);
+            glBindBuffer(GL_ARRAY_BUFFER, points_id);
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
             glEnableVertexAttribArray(0);
             glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(glm::vec3), points.data(), GL_STATIC_DRAW);
@@ -87,54 +82,59 @@ class Sample2 : public Sample {
                 return;
             }
 
-            std::string file_name = "./assets/textures/planet2.png";
-            surface = IMG_Load(file_name.c_str());
-            if (surface == nullptr) {
-                SDL_Log("Can't load file: %s", file_name.c_str());
-                SDL_Log("Verbose: %s", IMG_GetError());
-                return;
+
+            // Texture handling
+            GLint max_texture_units;
+            glGetIntegerv(GL_MAX_TEXTURE_UNITS, &max_texture_units);
+            SDL_Log("Max texture units: %i", max_texture_units);
+            
+            SDL_Surface* surface;
+            std::vector<std::string> file_list;
+            int files_limit = glm::clamp(max_texture_units, 1, 19);
+            for (int i = 1; i < files_limit; ++i) {
+                file_list.push_back("./assets/textures/planet" + std::to_string(i) + ".png");
             }
-            SDL_Log("Bytes per pixel %d", surface->format->BytesPerPixel);
-            SDL_Log("Width %d", surface->w);
-            SDL_Log("Height %d", surface->h);
+            texture_ids.resize(file_list.size());
 
-            // create GL texture
-            glGenTextures(1, &texture_id);
-            glBindTexture(GL_TEXTURE_2D, texture_id);
-            glEnable(GL_POINT_SPRITE);
-            //glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface->w, surface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-            //glPointSize(100);
+            glGenTextures(texture_ids.size(), texture_ids.data());
+            for (int i = 0; i < static_cast<int>(file_list.size()); ++i) {
+                surface = load_surface(file_list[i]);
+                glActiveTexture(GL_TEXTURE0+i);
+                glBindTexture(GL_TEXTURE_2D, texture_ids[i]);
+                glEnable(GL_POINT_SPRITE);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface->w, surface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                SDL_FreeSurface(surface);
+            }
         };
 
 
-        virtual void update(float /*elapsed_seconds*/) {
-            //shader.setUniform("PVM", game.m_projection_matrix);
-            
-            shader.setUniform("PVM", game.m_projection_matrix * game.m_view_matrix);
-            shader.setUniform("CameraPosition", game.aimRay().startPoint());
-            shader.setUniform("PointSize", point_size);
+        SDL_Surface* load_surface(std::string file_name) {
+            SDL_Surface* surface = IMG_Load(file_name.c_str());
+            if (surface == nullptr) {
+                SDL_Log("Can't load file: %s", file_name.c_str());
+                SDL_Log("Verbose: %s", IMG_GetError());
+                return nullptr;
+            }
+            return surface;
+        }
+
+
+        virtual void update(float elapsed_seconds) {
+            shader.setUniform("uPVM", game.m_projection_matrix * game.m_view_matrix);
+            shader.setUniform("uCameraPosition", game.aimRay().startPoint());
+            shader.setUniform("uPointSize", point_size);
+            int size = texture_ids.size();
+            for (int i = 0; i < size; ++i) {
+                shader.setUniform("uTex" + std::to_string(i), i);
+            }
+            shader.setUniform("uMaxTextureUnits", static_cast<int>(texture_ids.size()));
+            shader.setUniform("uTime", elapsed_seconds);
         };
 
 
         virtual void render() {
             glDrawArrays(GL_POINTS, 0, amount_of_points);
         };
-
-
-        //void resize() {
-            //#ifdef EMSCRIPTEN
-            //int width;
-            //int height;
-            //int is_fullscreen;
-            //emscripten_get_canvas_size(&width, &height, &is_fullscreen);
-            //if (is_fullscreen) {
-                //emscripten_set_canvas_size(width, height);
-                //glViewport(0, 0, width, height);
-            //}
-            //#endif
-        //}
 };
