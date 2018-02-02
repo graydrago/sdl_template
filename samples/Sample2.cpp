@@ -85,12 +85,12 @@ class Sample2 : public Sample {
 
             // Texture handling
             GLint max_texture_units;
-            glGetIntegerv(GL_MAX_TEXTURE_UNITS, &max_texture_units);
-            SDL_Log("Max texture units: %i", max_texture_units);
+            glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &max_texture_units);
+            SDL_Log("Max texture image units: %i", max_texture_units);
             
             SDL_Surface* surface;
             std::vector<std::string> file_list;
-            int files_limit = glm::clamp(max_texture_units, 1, 19);
+            int files_limit = glm::clamp(max_texture_units, 8, 19);
             for (int i = 1; i < files_limit; ++i) {
                 file_list.push_back("./assets/textures/planet" + std::to_string(i) + ".png");
             }
@@ -117,6 +117,7 @@ class Sample2 : public Sample {
                 SDL_Log("Verbose: %s", IMG_GetError());
                 return nullptr;
             }
+
             return surface;
         }
 
