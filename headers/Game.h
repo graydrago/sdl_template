@@ -51,6 +51,8 @@ class Game {
         Game();
 
     public:
+        float m_camera_min_speed = 0.01;
+        float m_camera_max_speed = 0.05;
         glm::mat4 m_view_matrix;
         glm::mat4 m_projection_matrix;
         std::vector<std::shared_ptr<Object>> scene_list;

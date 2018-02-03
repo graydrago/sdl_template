@@ -35,6 +35,9 @@ class Sample2 : public Sample {
 
 
         virtual void init() {
+            game.m_camera_min_speed = 0.5;
+            game.m_camera_max_speed = 1.0;
+
             glClearColor(0, 0, 0, 1);
             glEnable(GL_BLEND);
             //glEnable(GL_POINT_SMOOTH);

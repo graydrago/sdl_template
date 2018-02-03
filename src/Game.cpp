@@ -77,14 +77,14 @@ void Game::init() {
     #endif
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
-    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 6);
-    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
-
+    //SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
+    //SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 6);
+    //SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
 
     #ifdef __EMSCRIPTEN__
     emscripten_get_canvas_element_size(nullptr, &m_screen_width, &m_screen_height);
     #endif
+
     window = SDL_CreateWindow(
         "Template",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -199,7 +199,7 @@ void Game::loop() noexcept {
                     }
                     case SDLK_LSHIFT:
                     {
-                        m_camera->speed(0.05);
+                        m_camera->speed(m_camera_max_speed);
                         break;
                     }
                     case SDLK_1:
@@ -241,11 +241,11 @@ void Game::loop() noexcept {
                     }
                     case SDLK_LSHIFT:
                     {
-                        m_camera->speed(0.01);
+                        m_camera->speed(m_camera_min_speed);
                         break;
                     }
                 }
-                if (event.key.keysym.mod == KMOD_SHIFT) { m_camera->speed(0.05); }
+                if (event.key.keysym.mod == KMOD_SHIFT) { m_camera->speed(m_camera_max_speed); }
                 break;
             }
 
@@ -253,6 +253,9 @@ void Game::loop() noexcept {
             {
                 control.fire = true;
                 if (!SDL_GetRelativeMouseMode()) { SDL_SetRelativeMouseMode(SDL_TRUE); }
+                #ifdef __EMSCRIPTEN__
+                emscripten_request_pointerlock("#canvas", EM_TRUE);
+                #endif
 
                 //auto ray_start = aimRay().startPoint();
                 //auto ray_end = aimRay().endPoint();
