@@ -13,6 +13,7 @@ set(SOURCE_EXE
   ./src/Object.cpp ./src/Game.cpp ./src/PlayMusic.cpp
   ./src/Collider.cpp ./src/Line.cpp main.cpp)
 
+
 add_executable( ${PROJECT_NAME} ${SOURCE_EXE} )
 
 # common flags
@@ -61,7 +62,6 @@ else()
       COMMAND ${CMAKE_COMMAND} -E create_symlink
           "${CMAKE_SOURCE_DIR}/assets"
           "${CMAKE_BINARY_DIR}/assets")
-
 
   target_link_libraries( ${PROJECT_NAME} SDL2 SDL2_mixer SDL2_image GL GLEW)
 endif()

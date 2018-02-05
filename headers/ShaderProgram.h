@@ -12,13 +12,11 @@ class ShaderProgramExeption : public std::runtime_error {
 };
 
 class ShaderProgram {
-    private:
-        GLuint handle;
-
     public:
+        GLuint handle;
         ShaderProgram();
         virtual ~ShaderProgram();
-        void compile(std::string fileName, GLuint shaderType);
+        void compile(const std::string &fileName, const GLuint shaderType, const bool isFile = true);
         void link();
         void use();
         void bindAttribLocation(const GLuint location, const std::string name);

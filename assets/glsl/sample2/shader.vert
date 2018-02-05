@@ -1,6 +1,6 @@
 #version 430
-
 layout (location=0) in vec3 aVertexPosition;
+layout (location=1) in int aVertexId;
 
 flat out int vPlanetID;
 
@@ -17,6 +17,6 @@ void main() {
 
     gl_PointSize = uPointSize/distance(uCameraPosition, point);
 
-    vPlanetID = gl_VertexID % uMaxTextureUnits;
+    vPlanetID = aVertexId;
     gl_Position = uPVM * vec4(point, 1.0);
 }

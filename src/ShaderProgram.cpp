@@ -25,7 +25,8 @@ ShaderProgram::~ShaderProgram() {
     delete [] shaderNames;
 }
 
-void ShaderProgram::compile(std::string fileName, GLuint shaderType) {
+
+void ShaderProgram::compile(const std::string &src, const GLuint shaderType, const bool isFile) {
     if (handle <= 0) {
         handle = glCreateProgram();
         if (handle == 0) {
@@ -38,17 +39,25 @@ void ShaderProgram::compile(std::string fileName, GLuint shaderType) {
         throw ShaderProgramExeption("Can't create a shader.");
     }
 
-    std::string shaderText = loadTextFile(fileName);
+    std::string shaderText;
+    if (isFile) {
+      shaderText = loadTextFile(src);
+    } else {
+      shaderText = src;
+    }
     const GLchar *shaderCode = shaderText.c_str();
-    const GLchar *codeArray[] = {shaderCode};
-    glShaderSource(shader, 1, codeArray, NULL);
+    glShaderSource(shader, 1, &shaderCode, NULL);
     glCompileShader(shader);
 
     GLint result;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
     if (GL_FALSE == result) {
         std::string text = "";
-        text = text + "Can't compile a shader: " + fileName + "\n";
+        if (isFile) {
+          text = text + "Can't compile a shader: " + src + "\n";
+        } else {
+          text = text + "Can't compile a shader: \n";
+        }
 
         GLint log_length = 0;
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &log_length);
@@ -68,6 +77,7 @@ void ShaderProgram::compile(std::string fileName, GLuint shaderType) {
 
     glAttachShader(handle, shader);
 }
+
 
 void ShaderProgram::link() {
     if (handle <= 0) {
