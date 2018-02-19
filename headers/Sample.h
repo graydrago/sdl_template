@@ -15,4 +15,5 @@ class Sample {
         virtual void init() {};
         virtual void update(float /*elapsed_seconds*/) {};
         virtual void render() {};
+        virtual void resize() {};
 };

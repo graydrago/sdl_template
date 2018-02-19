@@ -23,8 +23,6 @@ class Game {
         bool m_fullscreen_mode;
         SDL_DisplayMode m_window_display_mode;
 
-        int m_screen_width;
-        int m_screen_height;
         int m_window_screen_width;
         int m_window_screen_height;
         int m_fullscreen_screen_width;
@@ -51,8 +49,12 @@ class Game {
         Game();
 
     public:
+        int m_screen_width;
+        int m_screen_height;
         float m_camera_min_speed = 0.01;
         float m_camera_max_speed = 0.05;
+        bool m_use_default_eye_matrix = true;
+        bool m_use_default_perspective_matrix = true;
         glm::mat4 m_view_matrix;
         glm::mat4 m_projection_matrix;
         std::vector<std::shared_ptr<Object>> scene_list;
@@ -73,7 +75,7 @@ class Game {
         void fpsControlCamera(Object& _c, float);
         void freeControlCamera(Object& _c, float);
         void toggleFullscreenVideoMode();
-        float aspectRatio() { return (float)m_screen_width/(float)m_screen_height; };
+        float aspectRatio() { return static_cast<float>(m_screen_width)/static_cast<float>(m_screen_height); };
 
         std::shared_ptr<ShaderProgram> shader(std::string name) { return m_shaders_list.at(name); };
         std::shared_ptr<Mesh> mesh(std::string name) { return m_mesh_list.at(name); };
@@ -83,6 +85,8 @@ class Game {
         void cache(std::string name, std::shared_ptr<Mesh> mesh) { m_mesh_list[name] = mesh; };
         void bag(std::string name, Object* v);
         Object* bag(std::string name);
+
+        void FPSMeter(float elapsed);
 
         void operator=(Game const&) = delete;
 

@@ -36,6 +36,7 @@
 
 #include "../samples/Sample1.cpp"
 #include "../samples/Sample2.cpp"
+#include "../samples/Sample3.cpp"
 
 
 Game::Game() {
@@ -132,7 +133,7 @@ void Game::run() {
     m_camera->position({0, 0, 0.5});
     scene_list.push_back(m_camera);
 
-    m_sample = std::make_unique<Sample2>(*this);
+    m_sample = std::make_unique<Sample3>(*this);
     m_sample->init();
 
     #ifdef __EMSCRIPTEN__
@@ -293,7 +294,10 @@ void Game::loop() noexcept {
                 switch (event.window.event) {
                     case SDL_WINDOWEVENT_RESIZED:
                     {
+                        m_screen_width = event.window.data1;
+                        m_screen_height = event.window.data2;
                         glViewport(0, 0, event.window.data1, event.window.data2);
+                        m_sample->resize();
                     }
                     break;
                 }
@@ -304,6 +308,7 @@ void Game::loop() noexcept {
     Uint32 elapsed_since_start_program = SDL_GetTicks();
     Uint32 elapsed_since_last_frame = elapsed_since_start_program - last_frame_time;
     float elapsed_seconds = (float) elapsed_since_last_frame * 0.001;
+    FPSMeter(elapsed_seconds);
     last_frame_time = elapsed_since_start_program;
 
 
@@ -322,12 +327,17 @@ void Game::loop() noexcept {
     }
     #endif
 
-    m_view_matrix = m_camera->eye();
-    m_projection_matrix = glm::perspective(
-        m_screen_height < m_screen_width ? (float)m_screen_height/(float)m_screen_width : aspectRatio(),
-        aspectRatio(),
-        m_near_plane,
-        m_far_plane);
+    if (m_use_default_eye_matrix) {
+        m_view_matrix = m_camera->eye();
+    }
+
+    if (m_use_default_perspective_matrix) {
+        m_projection_matrix = glm::perspective(
+            m_screen_height < m_screen_width ? (float)m_screen_height/(float)m_screen_width : aspectRatio(),
+            aspectRatio(),
+            m_near_plane,
+            m_far_plane);
+    }
 
     auto ray_start =  glm::unProject(
             glm::vec3(m_screen_width/2, m_screen_height/2+10, 0.0),
@@ -340,19 +350,11 @@ void Game::loop() noexcept {
             glm::vec4(0.f, 0.f, m_screen_width, m_screen_height));
 
     m_aim_ray = SegmentCollider(ray_start, ray_end);
-    //m_light_position = glm::vec3(camera->position().x, camera->position().y, camera->position().z);
 
     for (auto item : scene_list) {
         item->update(elapsed_seconds);
     }
     m_sample->update(elapsed_seconds);
-
-    //auto model_at_gunpoint = bag("neares_model");
-    //if (model_at_gunpoint != nullptr) {
-        //auto tmp = static_cast<Model*>(model_at_gunpoint);
-        //tmp->paint(aimRay(), {0, 1, 0});
-        //bag("neares_model", nullptr);
-    //}
 
     for (auto item : scene_list) {
         item->render(m_projection_matrix, m_view_matrix);
@@ -360,6 +362,9 @@ void Game::loop() noexcept {
     m_sample->render();
 
     SDL_GL_SwapWindow(window);
+
+    // TODO make adaptive
+    SDL_Delay(1000.0 / 60.0) ;
 }
 
 
@@ -442,3 +447,12 @@ Object* Game::bag(std::string name) {
     auto tmp = m_bag.find(name);
     return tmp == m_bag.end() ? nullptr : tmp->second;
 };
+
+
+void Game::FPSMeter(float elapsed) {
+    static float last = 0;
+    float now = elapsed;
+    float fps = 1.0/(now - last);
+    SDL_SetWindowTitle(window, std::to_string(static_cast<int>(fps)).c_str());
+    last = elapsed;
+}

@@ -121,3 +121,4 @@ bool testIntersection(const SegmentCollider& seg, const glm::vec3& point0, const
 
     return result;
 }
+
