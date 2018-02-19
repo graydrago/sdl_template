@@ -322,6 +322,7 @@ void Game::loop() noexcept {
                   m_screen_height = height;
                   SDL_SetWindowSize(window, m_screen_width, m_screen_height);
                   glViewport(0, 0, m_screen_width, m_screen_height);
+                  m_sample->resize();
               }
           }
     }
